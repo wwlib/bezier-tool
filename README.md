@@ -5,7 +5,7 @@
 
 A react, typescript bezier tool. Based on [http://www.victoriakirst.com/beziertool/](http://www.victoriakirst.com/beziertool/).
 
-[http://wwlib.github.io/bezier-tool/](http://wwlib.github.io/bezier-tool/)  
+Demo: [http://wwlib.github.io/bezier-tool/](http://wwlib.github.io/bezier-tool/)  
 
 Note: This is a work in-progress...
 
