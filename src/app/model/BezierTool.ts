@@ -29,6 +29,9 @@ export default class BezierTool {
     private _mouseDownHandler: any = this.handleDown.bind(this);
     private _mouseUpHandler: any = this.handleUp.bind(this);
     private _mouseMoveHandler: any = this.updateSelected.bind(this);
+    private _touchstartHandler: any = this.handleTouchStart.bind(this);
+    private _touchmoveHandler: any = this.handleTouchMove.bind(this);
+    private _touchupHandler: any = this.handleTouchUp.bind(this);
 
     constructor() {
         this.gCanvas = document.getElementById('paintme');
@@ -45,6 +48,9 @@ export default class BezierTool {
 
         this.gCanvas.addEventListener("mousedown", this._mouseDownHandler, false);
         this.gCanvas.addEventListener("mouseup", this._mouseUpHandler, false);
+
+        this.gCanvas.addEventListener('touchstart', this._touchstartHandler, {passive: false});
+        this.gCanvas.addEventListener('touchup', this._touchupHandler, {passive: false});
 
 
         var selectButton = document.getElementById('selectMode');
@@ -192,6 +198,35 @@ export default class BezierTool {
             if (deleted)
                 this.render();
         }
+    }
+
+    handleTouchStart(event: any): void {
+        this.gCanvas.addEventListener('touchmove', this._touchmoveHandler, {passive: false});
+        if (event.targetTouches.length == 1) {
+          var touch = event.targetTouches[0];
+          // Place element where the finger is
+          // touch.pageX
+          // touch.pageY
+          this.handleDown(touch);
+        }
+        event.preventDefault();
+    }
+
+    handleTouchMove(event: any): void {
+        if (event.targetTouches.length == 1) {
+          var touch = event.targetTouches[0];
+          // Place element where the finger is
+          // touch.pageX
+          // touch.pageY
+          this.updateSelected(touch);
+        }
+        event.preventDefault();
+    }
+
+    handleTouchUp(event: any): void {
+        this.gCanvas.removeEventListener('touchmove', this._touchmoveHandler, false);
+        this.handleUp(event);
+        event.preventDefault();
     }
 
     updateSelected(e) {
