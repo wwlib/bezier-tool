@@ -1,6 +1,6 @@
 # bezier-tool
 
-![bezier-tool](./docs/bezier-tool.png)
+![bezier-tool](./static/assets/bezier-tool.png)
 
 
 A react, typescript bezier tool. Based on [http://www.victoriakirst.com/beziertool/](http://www.victoriakirst.com/beziertool/).
