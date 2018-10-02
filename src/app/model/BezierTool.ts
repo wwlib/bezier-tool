@@ -32,6 +32,7 @@ export default class BezierTool {
     private _touchstartHandler: any = this.handleTouchStart.bind(this);
     private _touchmoveHandler: any = this.handleTouchMove.bind(this);
     private _touchupHandler: any = this.handleTouchUp.bind(this);
+    private _iOSDevice = !!navigator.platform.match(/iPhone|iPod|iPad/);
 
     constructor() {
         this.gCanvas = document.getElementById('paintme');
@@ -46,12 +47,13 @@ export default class BezierTool {
 
         this.gState = this.Mode.kAdding;
 
-        this.gCanvas.addEventListener("mousedown", this._mouseDownHandler, false);
-        this.gCanvas.addEventListener("mouseup", this._mouseUpHandler, false);
-
-        this.gCanvas.addEventListener('touchstart', this._touchstartHandler, {passive: false});
-        this.gCanvas.addEventListener('touchup', this._touchupHandler, {passive: false});
-
+        if (this._iOSDevice) {
+            this.gCanvas.addEventListener('touchstart', this._touchstartHandler, {passive: false});
+            this.gCanvas.addEventListener('touchup', this._touchupHandler, {passive: false});
+        } else {
+            this.gCanvas.addEventListener("mousedown", this._mouseDownHandler, false);
+            this.gCanvas.addEventListener("mouseup", this._mouseUpHandler, false);
+        }
 
         var selectButton = document.getElementById('selectMode');
         selectButton.addEventListener("click", () => {
@@ -224,8 +226,11 @@ export default class BezierTool {
     }
 
     handleTouchUp(event: any): void {
-        this.gCanvas.removeEventListener('touchmove', this._touchmoveHandler, false);
-        this.handleUp(event);
+        if (this.gState == this.Mode.kDragging) {
+            this.gCanvas.removeEventListener('touchmove', this._touchmoveHandler, false);
+            this.gBezierPath.clearSelected();
+            this.gState = this.Mode.kSelecting;
+        }
         event.preventDefault();
     }
 
