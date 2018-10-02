@@ -79,16 +79,15 @@ export default class BezierTool {
             console.log(`loading image: ${input.value}`);
             this.gBackgroundImg = document.createElement('img');
             this.gBackgroundImg.width = this.WIDTH;
-
             // No image if invalid path
             this.gBackgroundImg.onerror = () => {
                 this.gBackgroundImg = null;
             };
+            this.gBackgroundImg.onload = () => {
+                this.render();
+            };
             this.gBackgroundImg.src = input.value;
-            this.render();
-
-            input.value = '';
-
+            // input.value = '';
         }, false);
 
     }

@@ -28,6 +28,7 @@ div.col {
 
 fieldset {
   clear: both;
+  font-size: 12px;
 }
 
 textarea {
@@ -55,8 +56,12 @@ Top Navigation Bar
     background-color: #04478d;
     color: white;
     display: flex;
-    justify-content: space-between;
+    /*justify-content: space-between;*/
     padding: 6px;
+}
+
+.topLogo {
+    margin-right: 6px;
 }
 
 .topButtons {
