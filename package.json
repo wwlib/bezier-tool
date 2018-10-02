@@ -1,0 +1,48 @@
+{
+  "name": "bezier-tool",
+  "version": "0.1.0",
+  "description": "",
+  "main": "webpack.config.js",
+  "scripts": {
+    "test": "mocha -r ts-node/register test/**/*.spec.ts",
+    "build": "./node_modules/.bin/webpack",
+    "start": "yarn build && node server.js",
+    "version": "./version.sh $npm_package_version",
+    "test-version": "./version.sh $npm_package_version"
+  },
+  "keywords": [],
+  "author": "Andrew Rapo <andrew@wwlib.org>",
+  "license": "MIT",
+  "dependencies": {
+    "copy-webpack-plugin": "^4.5.2",
+    "express": "^4.16.3",
+    "prettyjson": "^1.2.1",
+    "react": "^16.3.2",
+    "react-bootstrap": "^0.32.4",
+    "react-dom": "^16.3.2",
+    "react-list": "^0.8.10",
+    "react-select": "^2.0.0",
+    "wordlist-english": "^1.2.1"
+  },
+  "devDependencies": {
+    "@types/chai": "^4.1.6",
+    "@types/mocha": "^5.2.5",
+    "@types/react": "^16.3.14",
+    "@types/react-bootstrap": "^0.32.14",
+    "@types/react-dom": "^16.0.5",
+    "@types/react-select": "^2.0.3",
+    "chai": "^4.2.0",
+    "css-loader": "^1.0.0",
+    "html-webpack-plugin": "^3.2.0",
+    "mocha": "^5.2.0",
+    "source-map-loader": "^0.2.3",
+    "style-loader": "^0.23.0",
+    "ts-loader": "^4.3.0",
+    "ts-node": "^7.0.1",
+    "typescript": "^2.8.3",
+    "webpack": "^4.8.3",
+    "webpack-cli": "^2.1.3",
+    "webpack-dev-middleware": "^3.1.3",
+    "webpack-hot-middleware": "^2.22.2"
+  }
+}
