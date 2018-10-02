@@ -1,6 +1,11 @@
 import ControlPoint from './ControlPoint';
 import Point from './Point';
 
+export enum LineSegmentType {
+    SMOOTH,
+    CORNER
+}
+
 export default class LineSegment {
 
     public pt: Point; // Path point.
@@ -9,10 +14,12 @@ export default class LineSegment {
     public next: LineSegment; // Next LineSegment in path
     public prev: LineSegment; // Previous LineSegment in path
     public selectedPoint: Point | ControlPoint; // Specific point on the LineSegment that is selected.
+    public type: LineSegmentType;
 
-    constructor(pt: Point, prev: LineSegment) {
+    constructor(pt: Point, prev: LineSegment, type: LineSegmentType = LineSegmentType.SMOOTH) {
         this.pt = pt;
         this.prev = prev;
+        this.type = type;
 
         if (this.prev) {
 
@@ -40,13 +47,16 @@ export default class LineSegment {
     }
 
     draw(ctx) {
-        this.pt.drawSquare(ctx);
+        let strokeStyle: string = this.type == LineSegmentType.SMOOTH ? 'darkgrey' : 'red';
+        this.pt.drawSquare(ctx, strokeStyle);
         // Draw control points if we have them
-        if (this.ctrlPt1)
-            this.ctrlPt1.draw(ctx);
-        if (this.ctrlPt2)
-            this.ctrlPt2.draw(ctx);
-
+        if (this.ctrlPt1) {
+            let ctrlPt1StrokeStyle: string = this.prev.type == LineSegmentType.SMOOTH ? 'darkgrey' : 'red';
+            this.ctrlPt1.draw(ctx, ctrlPt1StrokeStyle);
+        }
+        if (this.ctrlPt2) {
+            this.ctrlPt2.draw(ctx, strokeStyle);
+        }
         // If there are at least two points, draw curve.
         if (this.prev)
             this.drawCurve(ctx, this.prev.pt, this.pt, this.ctrlPt1, this.ctrlPt2);
@@ -86,7 +96,7 @@ export default class LineSegment {
         }
     }
 
-    findInLineSegment(pos) {
+    findInLineSegment(pos: Point): boolean {
         if (this.pathPointIntersects(pos)) {
             this.selectedPoint = this.pt;
             return true;
@@ -100,11 +110,11 @@ export default class LineSegment {
         return false;
     }
 
-    pathPointIntersects(pos) {
+    pathPointIntersects(pos: Point): boolean {
         return this.pt && this.pt.contains(pos);
     }
 
-    moveTo(pos) {
+    moveTo(pos: Point) {
         var dist = this.selectedPoint.offsetFrom(pos);
         this.selectedPoint.translate(dist.xDelta, dist.yDelta);
     };

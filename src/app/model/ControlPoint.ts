@@ -1,11 +1,10 @@
 import Point from './Point';
-import LineSegment from './LineSegment';
+import LineSegment, { LineSegmentType } from './LineSegment';
+import BezierTool from './BezierTool';
 
 export default class ControlPoint {
 
     // Static variable dictacting if neighbors must be kept in sync.
-    static syncNeighbor: boolean = true;
-
     private _angle: number;
     private _magnitude: number;
     private _owner: LineSegment; // Pointer to the line segment to which this belongs.
@@ -18,7 +17,7 @@ export default class ControlPoint {
         this._isFirst = isFirst;
 
         // When Constructed
-        if (ControlPoint.syncNeighbor) {
+        if (this._isFirst && this._owner.type == LineSegmentType.SMOOTH || BezierTool.META_KEY_DOWN) {
             this.updateNeighbor();
         }
     }
@@ -77,8 +76,9 @@ export default class ControlPoint {
         newLoc.translate(xDelta, yDelta);
         var dist = this.origin().offsetFrom(newLoc);
         this.computeMagnitudeAngleFromOffset(dist.xDelta, dist.yDelta);
-        if (ControlPoint.syncNeighbor)
+        if ( (!this._isFirst && this._owner.type == LineSegmentType.SMOOTH) || (this._isFirst && this._owner.prev.type == LineSegmentType.SMOOTH) || BezierTool.META_KEY_DOWN ) {
             this.updateNeighbor();
+        }
     };
 
     updateNeighbor() {
@@ -99,26 +99,27 @@ export default class ControlPoint {
         return this.asPoint().offsetFrom(pt);
     }
 
-    drawSquare(ctx, point) {
+    drawSquare(ctx, point, strokeStyle: string = 'darkgrey') {
+        ctx.save();
         ctx.fillStyle = 'white';
-        ctx.strokeStyle = 'darkgrey';
+        ctx.strokeStyle = strokeStyle;
         ctx.fillRect(point.x - point.RADIUS, point.y - point.RADIUS, point.RADIUS * 2, point.RADIUS * 2);
         ctx.strokeRect(point.x - point.RADIUS, point.y - point.RADIUS, point.RADIUS * 2, point.RADIUS * 2);
         // ctx.fill();
         // ctx.stroke();
     };
 
-    draw(ctx) {
+    draw(ctx, pointStrokeStyle: string = 'darkgrey') {
         ctx.save();
         ctx.fillStyle = 'white';
-        ctx.strokeStyle = 'darkgrey';
+        ctx.strokeStyle = 'lightgrey';
         ctx.beginPath();
         var startPt = this.origin();
         var endPt = this.asPoint();
         ctx.moveTo(startPt.x, startPt.y);
         ctx.lineTo(endPt.x, endPt.y);
         ctx.stroke();
-        this.drawSquare(ctx, endPt);
+        this.drawSquare(ctx, endPt, pointStrokeStyle);
         // endPt.drawSquare(ctx);
         ctx.restore();
     }

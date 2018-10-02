@@ -1,18 +1,23 @@
 import ControlPoint from './ControlPoint';
 import BezierPath from './BezierPath';
 import Point from './Point';
+import { LineSegmentType } from './LineSegment';
 
 export default class BezierTool {
+
+    static ALT_KEY_DOWN: boolean;
+    static META_KEY_DOWN: boolean;
 
     public gCanvas;
     public gCtx;
     public gBackCanvas;
     public gBackCtx;
-    public gBezierPath;
+    public gBezierPath: BezierPath;
     public gState;
     public gBackgroundImg: HTMLImageElement;
     public WIDTH;
     public HEIGHT;
+    public createSmoothLineSegments: boolean;
 
     public Mode = {
         kAdding: { value: 0, name: "Adding" },
@@ -57,9 +62,10 @@ export default class BezierTool {
             this.gState = this.Mode.kRemoving;
         }, false);
 
+        this.createSmoothLineSegments = true;
         var lockButton: HTMLInputElement = document.getElementById('lockControl') as HTMLInputElement;
         lockButton.addEventListener("click", () => {
-            ControlPoint.syncNeighbor = lockButton.checked;
+            this.createSmoothLineSegments = lockButton.checked;
         }, false);
 
         var clearButton = document.getElementById('clear');
@@ -76,7 +82,6 @@ export default class BezierTool {
         var setSrcButton = document.getElementById('addImgSrc');
         setSrcButton.addEventListener('click', () => {
             var input: HTMLInputElement = document.getElementById('imageSrc') as HTMLInputElement;
-            console.log(`loading image: ${input.value}`);
             this.gBackgroundImg = document.createElement('img');
             this.gBackgroundImg.width = this.WIDTH;
             // No image if invalid path
@@ -89,6 +94,18 @@ export default class BezierTool {
             this.gBackgroundImg.src = input.value;
             // input.value = '';
         }, false);
+
+        BezierTool.ALT_KEY_DOWN = false;
+        BezierTool.META_KEY_DOWN = false;
+        document.onkeydown = (event: KeyboardEvent) => {
+            BezierTool.ALT_KEY_DOWN = event.altKey;
+            BezierTool.META_KEY_DOWN = event.metaKey;
+        }
+
+        document.onkeyup = (event: KeyboardEvent) => {
+            BezierTool.ALT_KEY_DOWN = event.altKey;
+            BezierTool.META_KEY_DOWN = event.metaKey;
+        }
 
     }
 
@@ -112,6 +129,7 @@ export default class BezierTool {
 
     handleDown(e) {
         var pos = this.getMousePosition(e);
+        // console.log(`handleDown: state: ${this.gState.name}`)
         switch (this.gState) {
             case this.Mode.kAdding:
                 this.handleDownAdd(pos);
@@ -126,37 +144,54 @@ export default class BezierTool {
     }
 
     handleDownAdd(pos) {
-        if (!this.gBezierPath)
-            this.gBezierPath = new BezierPath(pos);
-        else {
+        let lineSegmentType = this.createSmoothLineSegments ? LineSegmentType.SMOOTH : LineSegmentType.CORNER;
+        if (!this.gBezierPath) {
+            this.gBezierPath = new BezierPath(pos, lineSegmentType);
+        } else {
             // If this was probably a selection, change to
             // select/drag mode
-            if (this.handleDownSelect(pos))
-                return;
-            this.gBezierPath.addPoint(pos);
+            if (this.handleDownSelect(pos)) {
+                //
+            } else {
+                this.gBezierPath.addPoint(pos, lineSegmentType);
+            }
         }
         this.render();
     }
 
     // Return true/false if dragging mode
     handleDownSelect(pos) {
-        if (!this.gBezierPath)
-            return false;
-        var selected = this.gBezierPath.selectPoint(pos);
-        if (selected) {
-            this.gState = this.Mode.kDragging;
-            this.gCanvas.addEventListener("mousemove", this._mouseMoveHandler, false);
-            return true;
+        let result: boolean = false;
+        if (!this.gBezierPath) {
+            result = false;
+        } else {
+            var selected = this.gBezierPath.selectPoint(pos);
+            if (selected) {
+                if (BezierTool.ALT_KEY_DOWN) {
+                    if (this.gBezierPath.selectedSegment.type == LineSegmentType.SMOOTH) {
+                        this.gBezierPath.selectedSegment.type = LineSegmentType.CORNER;
+                    } else {
+                        this.gBezierPath.selectedSegment.type = LineSegmentType.SMOOTH;
+                    }
+                    this.render();
+                } else {
+                    this.gState = this.Mode.kDragging;
+                    this.gCanvas.addEventListener("mousemove", this._mouseMoveHandler, false);
+                }
+                result = true;
+            }
         }
-        return false;
+        return result;
     }
 
     handleDownRemove(pos) {
-        if (!this.gBezierPath)
-            return;
-        var deleted = this.gBezierPath.deletePoint(pos);
-        if (deleted)
-            this.render();
+        if (!this.gBezierPath) {
+            //
+        } else {
+            var deleted = this.gBezierPath.deletePoint(pos);
+            if (deleted)
+                this.render();
+        }
     }
 
     updateSelected(e) {
@@ -177,7 +212,6 @@ export default class BezierTool {
         this.gBackCtx.clearRect(0, 0, this.WIDTH, this.HEIGHT);
         this.gCtx.clearRect(0, 0, this.WIDTH, this.HEIGHT);
         if (this.gBackgroundImg) {
-            // console.log(`rendering image: `, this.gBackgroundImg);
             this.gBackCtx.drawImage(this.gBackgroundImg, 0, 0, this.HEIGHT, this.HEIGHT);
         }
 

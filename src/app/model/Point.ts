@@ -27,10 +27,10 @@ export default class Point {
         this._yVal = y;
     };
 
-    drawSquare(ctx) {
+    drawSquare(ctx, strokeStyle: string = 'darkgrey') {
         ctx.save();
         ctx.fillStyle = 'black';
-        ctx.strokeStyle = 'darkgrey';
+        ctx.strokeStyle = strokeStyle;
         ctx.fillRect(this._xVal - this.RADIUS, this._yVal - this.RADIUS, this.RADIUS * 2, this.RADIUS * 2);
         ctx.strokeRect(this._xVal - this.RADIUS, this._yVal - this.RADIUS, this.RADIUS * 2, this.RADIUS * 2);
         // ctx.fill();

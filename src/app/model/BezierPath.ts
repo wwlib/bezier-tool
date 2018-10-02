@@ -1,4 +1,5 @@
-import LineSegment from './LineSegment';
+import LineSegment, { LineSegmentType } from './LineSegment';
+import Point from './Point';
 
 export default class BezierPath {
 
@@ -6,18 +7,14 @@ export default class BezierPath {
     public tail; // End of BezierPath linked list
     public selectedSegment: LineSegment; // Reference to selected LineSegment
 
-    constructor(startPoint) {
+    constructor(startPoint: Point, lineSegmentType: LineSegmentType = LineSegmentType.SMOOTH) {
         this.head = null;
         this.tail = null;
-        this.init(startPoint);
+        this.addPoint(startPoint, lineSegmentType);
     }
 
-    init(startPoint) {
-        this.addPoint(startPoint);
-    };
-
-    addPoint(pt) {
-        var newPt = new LineSegment(pt, this.tail);
+    addPoint(pt: Point, lineSegmentType: LineSegmentType = LineSegmentType.SMOOTH) {
+        var newPt = new LineSegment(pt, this.tail, lineSegmentType);
         if (this.tail == null) {
           this.tail = newPt;
           this.head = newPt;
@@ -40,7 +37,7 @@ export default class BezierPath {
     };
 
     // returns true if point selected
-    selectPoint(pos) {
+    selectPoint(pos: Point): boolean {
         var current = this.head;
         while (current != null) {
           if (current.findInLineSegment(pos)) {
