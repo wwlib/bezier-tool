@@ -27,7 +27,7 @@ export default class TopNav extends React.Component<TopNavProps, TopNavState> {
         return (
             <div className="topNav" onClick={this.onButtonClicked.bind(this)} >
                 <div className="topTitle">
-                    <img className="topLogo" src={'/assets/ww-logo-40.png'} style={{width: 40}} onClick={this.onLogoClicked.bind(this)}/>
+                    <img className="topLogo" src={'assets/ww-logo-40.png'} style={{width: 40}} onClick={this.onLogoClicked.bind(this)}/>
                     <h4>React TypeScript Bezier Tool</h4>
                 </div>
             </div>
