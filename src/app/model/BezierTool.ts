@@ -31,7 +31,7 @@ export default class BezierTool {
     private _mouseMoveHandler: any = this.updateSelected.bind(this);
     private _touchstartHandler: any = this.handleTouchStart.bind(this);
     private _touchmoveHandler: any = this.handleTouchMove.bind(this);
-    private _touchupHandler: any = this.handleTouchUp.bind(this);
+    private _touchendHandler: any = this.handleTouchEnd.bind(this);
     private _iOSDevice = !!navigator.platform.match(/iPhone|iPod|iPad/);
 
     constructor() {
@@ -49,7 +49,7 @@ export default class BezierTool {
 
         if (this._iOSDevice) {
             this.gCanvas.addEventListener('touchstart', this._touchstartHandler, {passive: false});
-            this.gCanvas.addEventListener('touchup', this._touchupHandler, {passive: false});
+            this.gCanvas.addEventListener('touchend', this._touchendHandler, {passive: false});
         } else {
             this.gCanvas.addEventListener("mousedown", this._mouseDownHandler, false);
             this.gCanvas.addEventListener("mouseup", this._mouseUpHandler, false);
@@ -225,7 +225,7 @@ export default class BezierTool {
         event.preventDefault();
     }
 
-    handleTouchUp(event: any): void {
+    handleTouchEnd(event: any): void {
         if (this.gState == this.Mode.kDragging) {
             this.gCanvas.removeEventListener('touchmove', this._touchmoveHandler, false);
             this.gBezierPath.clearSelected();
