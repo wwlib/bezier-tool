@@ -16,6 +16,8 @@ export default class LineSegment {
     public selectedPoint: Point | ControlPoint; // Specific point on the LineSegment that is selected.
     public type: LineSegmentType;
 
+    private _controlPointMagnitude: number = 20;
+
     constructor(pt: Point, prev: LineSegment, type: LineSegmentType = LineSegmentType.SMOOTH) {
         this.pt = pt;
         this.prev = prev;
@@ -30,8 +32,8 @@ export default class LineSegment {
             if (this.prev.pt.x > this.pt.x)
                 angle *= -1;
 
-            this.ctrlPt1 = new ControlPoint(angle + Math.PI, 15, this, true);
-            this.ctrlPt2 = new ControlPoint(angle, 15, this, false);
+            this.ctrlPt1 = new ControlPoint(angle + Math.PI, this._controlPointMagnitude, this, true);
+            this.ctrlPt2 = new ControlPoint(angle, this._controlPointMagnitude, this, false);
         }
     }
 
