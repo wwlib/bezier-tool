@@ -15,13 +15,15 @@ export default class LineSegment {
     public prev: LineSegment; // Previous LineSegment in path
     public selectedPoint: Point | ControlPoint; // Specific point on the LineSegment that is selected.
     public type: LineSegmentType;
+    public time: number;
 
     private _controlPointMagnitude: number = 20;
 
-    constructor(pt: Point, prev: LineSegment, type: LineSegmentType = LineSegmentType.SMOOTH) {
+    constructor(pt: Point, prev: LineSegment, type: LineSegmentType = LineSegmentType.SMOOTH, time?: number) {
         this.pt = pt;
         this.prev = prev;
         this.type = type;
+        this.time = time || new Date().getTime();
 
         if (this.prev) {
 
@@ -118,8 +120,8 @@ export default class LineSegment {
         return false;
     }
 
-    pathPointIntersects(pos: Point): boolean {
-        return this.pt && this.pt.contains(pos);
+    pathPointIntersects(pos: Point, radius?: number): boolean {
+        return this.pt && this.pt.contains(pos, radius);
     }
 
     moveTo(pos: Point) {

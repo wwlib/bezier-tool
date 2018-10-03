@@ -18,21 +18,27 @@ export default class BezierTool {
     public WIDTH;
     public HEIGHT;
     public createSmoothLineSegments: boolean;
+    public simplifyPathTolerance: number;
+    public minDrawPointSpacing: number;
 
     public Mode = {
         kAdding: { value: 0, name: "Adding" },
         kSelecting: { value: 1, name: "Selecting" },
         kDragging: { value: 2, name: "Dragging" },
         kRemoving: { value: 3, name: "Removing" },
+        kDrawing: { value: 4, name: "Drawing" },
     };
 
     private _mouseDownHandler: any = this.handleDown.bind(this);
     private _mouseUpHandler: any = this.handleUp.bind(this);
-    private _mouseMoveHandler: any = this.updateSelected.bind(this);
+    private _mouseMoveHandler: any = this.handleMouseMove.bind(this);
     private _touchstartHandler: any = this.handleTouchStart.bind(this);
     private _touchmoveHandler: any = this.handleTouchMove.bind(this);
     private _touchendHandler: any = this.handleTouchEnd.bind(this);
     private _iOSDevice = !!navigator.platform.match(/iPhone|iPod|iPad/);
+
+    private _previousClickTime: number;
+    private _doubleClick: boolean;
 
     constructor() {
         this.gCanvas = document.getElementById('paintme');
@@ -70,11 +76,37 @@ export default class BezierTool {
             this.gState = this.Mode.kRemoving;
         }, false);
 
+        var drawButton = document.getElementById('drawMode');
+        drawButton.addEventListener("click", () => {
+            this.gState = this.Mode.kDrawing;
+        }, false);
+
         this.createSmoothLineSegments = true;
         var lockButton: HTMLInputElement = document.getElementById('lockControl') as HTMLInputElement;
         lockButton.addEventListener("click", () => {
             this.createSmoothLineSegments = lockButton.checked;
         }, false);
+
+
+        var smoothingSlider: HTMLInputElement = document.getElementById("smoothingSlider")as HTMLInputElement;
+        var smoothingValue: HTMLOutputElement = document.getElementById("smoothingValue")as HTMLOutputElement;
+        smoothingSlider.oninput = () => {
+            this.simplifyPathTolerance = Number(smoothingSlider.value);
+            smoothingValue.value = smoothingSlider.value
+        }
+        this.simplifyPathTolerance = 60;
+        smoothingSlider.value = `${this.simplifyPathTolerance}`;
+        smoothingValue.value = `${this.simplifyPathTolerance}`;
+
+        var spacingSlider: HTMLInputElement = document.getElementById("spacingSlider")as HTMLInputElement;
+        var spacingValue: HTMLOutputElement = document.getElementById("spacingValue")as HTMLOutputElement;
+        spacingSlider.oninput = () => {
+            this.minDrawPointSpacing = Number(spacingSlider.value);
+            spacingValue.value = spacingSlider.value;
+        }
+        this.minDrawPointSpacing = 40;
+        spacingSlider.value = `${this.minDrawPointSpacing}`;
+        spacingValue.value = `${this.minDrawPointSpacing}`;
 
         var clearButton = document.getElementById('clear');
         clearButton.addEventListener('click', () => {
@@ -116,10 +148,12 @@ export default class BezierTool {
             BezierTool.META_KEY_DOWN = event.metaKey;
         }
 
+        this._previousClickTime = new Date().getTime();
+        this._doubleClick = false;
     }
 
     // Modified from http://diveintohtml5.org/examples/halma.js
-    getMousePosition(e) {
+    getMousePosition(e: any) {
         var x;
         var y;
         if (e.pageX != undefined && e.pageY != undefined) {
@@ -136,24 +170,7 @@ export default class BezierTool {
         return new Point(x, y);
     }
 
-    handleDown(e) {
-        var pos = this.getMousePosition(e);
-        // console.log(`handleDown: state: ${this.gState.name}`)
-        switch (this.gState) {
-            case this.Mode.kAdding:
-                this.handleDownAdd(pos);
-                break;
-            case this.Mode.kSelecting:
-                this.handleDownSelect(pos);
-                break;
-            case this.Mode.kRemoving:
-                this.handleDownRemove(pos);
-                break;
-        }
-        event.preventDefault();
-    }
-
-    handleDownAdd(pos) {
+    handleDownAdd(pos: Point) {
         let lineSegmentType = this.createSmoothLineSegments ? LineSegmentType.SMOOTH : LineSegmentType.CORNER;
         if (!this.gBezierPath) {
             this.gBezierPath = new BezierPath(pos, lineSegmentType);
@@ -169,15 +186,30 @@ export default class BezierTool {
         this.render();
     }
 
+    handleDownDraw(pos: Point) {
+        let lineSegmentType = this.createSmoothLineSegments ? LineSegmentType.SMOOTH : LineSegmentType.CORNER;
+        if (!this.gBezierPath) {
+            this.gBezierPath = new BezierPath(pos, lineSegmentType);
+        } else {
+            if (!this.gBezierPath.tail.pathPointIntersects(pos)) {
+                this.gBezierPath.addPoint(pos, lineSegmentType);
+            }
+        }
+        this.gState = this.Mode.kDrawing;
+        this.gCanvas.addEventListener("mousemove", this._mouseMoveHandler, false);
+        this.render();
+    }
+
     // Return true/false if dragging mode
-    handleDownSelect(pos) {
+    handleDownSelect(pos: Point) {
         let result: boolean = false;
         if (!this.gBezierPath) {
             result = false;
         } else {
             var selected = this.gBezierPath.selectPoint(pos);
             if (selected) {
-                if (BezierTool.ALT_KEY_DOWN) {
+
+                if (BezierTool.ALT_KEY_DOWN || this._doubleClick) {
                     if (this.gBezierPath.selectedSegment.type == LineSegmentType.SMOOTH) {
                         this.gBezierPath.selectedSegment.type = LineSegmentType.CORNER;
                     } else {
@@ -194,7 +226,7 @@ export default class BezierTool {
         return result;
     }
 
-    handleDownRemove(pos) {
+    handleDownRemove(pos: Point) {
         if (!this.gBezierPath) {
             //
         } else {
@@ -202,6 +234,32 @@ export default class BezierTool {
             if (deleted)
                 this.render();
         }
+    }
+
+    handleDown(e: any) {
+        var pos = this.getMousePosition(e);
+        let doubleClickTime: number = new Date().getTime() - this._previousClickTime;
+        if (doubleClickTime < 200) {
+            this._doubleClick = true;
+            console.log(`double-click`);
+        }
+        this._previousClickTime = new Date().getTime();
+        // console.log(`handleDown: state: ${this.gState.name}`)
+        switch (this.gState) {
+            case this.Mode.kAdding:
+                this.handleDownAdd(pos);
+                break;
+            case this.Mode.kSelecting:
+                this.handleDownSelect(pos);
+                break;
+            case this.Mode.kRemoving:
+                this.handleDownRemove(pos);
+                break;
+            case this.Mode.kDrawing:
+                this.handleDownDraw(pos);
+                break;
+        }
+        event.preventDefault();
     }
 
     handleTouchStart(event: any): void {
@@ -216,38 +274,49 @@ export default class BezierTool {
         event.preventDefault();
     }
 
+    handleMouseMove(e: any) {
+        var pos = this.getMousePosition(e);
+        if (this.gState == this.Mode.kDragging) {
+            this.gBezierPath.updateSelected(pos);
+        } else if (this.gState == this.Mode.kDrawing) {
+            let lineSegmentType = this.createSmoothLineSegments ? LineSegmentType.SMOOTH : LineSegmentType.CORNER;
+            if (!this.gBezierPath.tail.pathPointIntersects(pos, this.minDrawPointSpacing)) {
+                this.gBezierPath.addPoint(pos, lineSegmentType);
+            }
+        }
+        this.render();
+    }
+
     handleTouchMove(event: any): void {
         if (event.targetTouches.length == 1) {
           var touch = event.targetTouches[0];
           // Place element where the finger is
           // touch.pageX
           // touch.pageY
-          this.updateSelected(touch);
+          this.handleMouseMove(touch);
         }
         event.preventDefault();
+    }
+
+    handleUp(e: any) {
+        this.gCanvas.removeEventListener("mousemove", this._mouseMoveHandler, false);
+        this.gCanvas.removeEventListener('touchmove', this._touchmoveHandler, false);
+
+        if (this.gState == this.Mode.kDragging) {
+            this.gBezierPath.clearSelected();
+            this.gState = this.Mode.kSelecting;
+        } else if (this.gState == this.Mode.kDrawing) {
+            this.gBezierPath.clearSelected();
+            this.gBezierPath.simplifyPath(this.simplifyPathTolerance);
+            this.gState = this.Mode.kSelecting;
+            this.render();
+        }
+        this._doubleClick = false;
     }
 
     handleTouchEnd(event: any): void {
-        if (this.gState == this.Mode.kDragging) {
-            this.gCanvas.removeEventListener('touchmove', this._touchmoveHandler, false);
-            this.gBezierPath.clearSelected();
-            this.gState = this.Mode.kSelecting;
-        }
+        this.handleUp(event);
         event.preventDefault();
-    }
-
-    updateSelected(e) {
-        var pos = this.getMousePosition(e);
-        this.gBezierPath.updateSelected(pos);
-        this.render();
-    }
-
-    handleUp(e) {
-        if (this.gState == this.Mode.kDragging) {
-            this.gCanvas.removeEventListener("mousemove", this._mouseMoveHandler, false);
-            this.gBezierPath.clearSelected();
-            this.gState = this.Mode.kSelecting;
-        }
     }
 
     render() {

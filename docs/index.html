@@ -20,13 +20,43 @@
     <div id="container">
         <fieldset>
             <legend>Path Edit Modes</legend>
-            <label><input style="margin-right: 6px;" type="radio" name="mode" id="addMode" checked/>add points</label>
-            <label><input style="margin-right: 6px;" type="radio" name="mode" id="selectMode" />move points</label>
-            <label><input style="margin-right: 6px;" type="radio" name="mode" id="removeMode" />remove points</label>
-            <label><input style="margin-right: 6px;" type="checkbox" name="lockControl" id="lockControl" checked/>lock adjacent control points</label>
+            <label><input style="margin-right: 6px;" type="radio" name="mode" id="addMode" checked/>add</label>
+            <label><input style="margin-right: 6px;" type="radio" name="mode" id="selectMode" />move</label>
+            <label><input style="margin-right: 6px;" type="radio" name="mode" id="removeMode" />remove</label>
+            <label><input style="margin-right: 6px;" type="radio" name="mode" id="drawMode" />draw</label>
+            <label><input style="margin-right: 6px;" type="checkbox" name="lockControl" id="lockControl" checked/>lock control points</label>
             <button id="clear" type="button">Clear all points</button>
-            <label>(Alt-click = change control point mode, Meta-click = force smooth control.)</label>
+            <label>(Alt-click = toggle CORNER mode, Meta-click = force SMOOTH mode.)</label>
             <br/>
+            <label for="smoothingSlider">Smoothing</label><output style="margin: 6px;" for="smoothingSlider" id="smoothingValue"></output>
+            <input type="range" list="smoothing-steps" id="smoothingSlider" name="smoothing" min="0" max="200" />
+
+            <datalist id="smoothing-steps">
+              <option value="0" label="0">
+              <option value="20" label="20">
+              <option value="40" label="40">
+              <option value="60" label="60">
+              <option value="80" label="80">
+              <option value="100" label="100">
+              <option value="120" label="120">
+              <option value="140" label="140">
+              <option value="160" label="160">
+              <option value="180" label="180">
+              <option value="200" label="200">
+            </datalist>
+            <label for="spacingSlider">Spacing</label><output style="margin: 6px;" for="spacingSlider" id="spacingValue"></output>
+            <input type="range" list="spacing-steps" id="spacingSlider" name="spacing" min="20" max="100" />
+            <datalist id="spacing-steps">
+              <option value="20" label="20">
+              <option value="30" label="30">
+              <option value="40" label="40">
+              <option value="50" label="50">
+              <option value="60" label="60">
+              <option value="70" label="70">
+              <option value="80" label="80">
+              <option value="90" label="90">
+              <option value="100" label="100">
+            </datalist>
       </fieldset>
             <div class="col">
                 <canvas id="paintme" width="500" height="500"></canvas>

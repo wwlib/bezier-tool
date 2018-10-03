@@ -22,7 +22,7 @@ export default class Point {
         return this._yVal;
     }
 
-    set(x, y) {
+    set(x: number, y:number) {
         this._xVal = x;
         this._yVal = y;
     };
@@ -43,9 +43,10 @@ export default class Point {
         return (pt.y - this._yVal) / (pt.x - this._xVal);
     };
 
-    contains(pt) {
-        var xInRange = pt.x >= this._xVal - this.SELECT_RADIUS && pt.x <= this._xVal + this.SELECT_RADIUS;
-        var yInRange = pt.y >= this._yVal - this.SELECT_RADIUS && pt.y <= this._yVal + this.SELECT_RADIUS;
+    contains(pt: Point, radius?: number) {
+        radius = radius || this.SELECT_RADIUS;
+        var xInRange = pt.x >= this._xVal - radius && pt.x <= this._xVal + radius;
+        var yInRange = pt.y >= this._yVal - radius && pt.y <= this._yVal + radius;
         return xInRange && yInRange;
     };
 
