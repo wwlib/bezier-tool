@@ -78,11 +78,12 @@ export default class BezierTool {
 
         var clearButton = document.getElementById('clear');
         clearButton.addEventListener('click', () => {
-            var doDelete = confirm('r u sure u want to delete all');
+            var doDelete = confirm('Clear all points?');
             if (doDelete) {
                 this.gBezierPath = null;
                 this.gBackCtx.clearRect(0, 0, this.WIDTH, this.HEIGHT);
                 this.gCtx.clearRect(0, 0, this.WIDTH, this.HEIGHT);
+                this.gState = this.Mode.kAdding;
             }
 
         }, false);
@@ -149,6 +150,7 @@ export default class BezierTool {
                 this.handleDownRemove(pos);
                 break;
         }
+        event.preventDefault();
     }
 
     handleDownAdd(pos) {

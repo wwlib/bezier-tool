@@ -28,12 +28,16 @@ export default class LineSegment {
             // Make initial line straight and with controls of length 15.
             var slope = this.pt.computeSlope(this.prev.pt);
             var angle = Math.atan(slope);
+            var ctrlPt1Angle = angle;
+            var ctrlPt2Angle = angle + Math.PI;
 
-            if (this.prev.pt.x > this.pt.x)
-                angle *= -1;
+            if (this.prev.pt.x > this.pt.x) {
+                ctrlPt1Angle = angle + Math.PI;
+                ctrlPt2Angle = angle;
+            }
 
-            this.ctrlPt1 = new ControlPoint(angle + Math.PI, this._controlPointMagnitude, this, true);
-            this.ctrlPt2 = new ControlPoint(angle, this._controlPointMagnitude, this, false);
+            this.ctrlPt1 = new ControlPoint(ctrlPt1Angle, this._controlPointMagnitude, this, true);
+            this.ctrlPt2 = new ControlPoint(ctrlPt2Angle, this._controlPointMagnitude, this, false);
         }
     }
 
