@@ -36,14 +36,14 @@ export default class LineSegment {
     }
 
     drawCurve(ctx, startPt, endPt, ctrlPt1, ctrlPt2) {
-        ctx.save();
+        // ctx.save();
         ctx.fillStyle = 'grey';
         ctx.strokeStyle = 'darkgrey';
         ctx.beginPath();
         ctx.moveTo(startPt.x, startPt.y);
         ctx.bezierCurveTo(ctrlPt1.x, ctrlPt1.y, ctrlPt2.x, ctrlPt2.y, endPt.x, endPt.y);
         ctx.stroke();
-        ctx.restore();
+        // ctx.restore();
     }
 
     draw(ctx) {
@@ -58,8 +58,10 @@ export default class LineSegment {
             this.ctrlPt2.draw(ctx, strokeStyle);
         }
         // If there are at least two points, draw curve.
-        if (this.prev)
+        if (this.prev) {
             this.drawCurve(ctx, this.prev.pt, this.pt, this.ctrlPt1, this.ctrlPt2);
+        }
+
     }
 
     toJSString() {

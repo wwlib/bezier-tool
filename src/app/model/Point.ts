@@ -11,7 +11,7 @@ export default class Point {
         this._yVal = newY;
 
         this.RADIUS = 3;
-        this.SELECT_RADIUS = this.RADIUS + 2;
+        this.SELECT_RADIUS = this.RADIUS * 4;
     }
 
     get x() {
@@ -28,14 +28,15 @@ export default class Point {
     };
 
     drawSquare(ctx, strokeStyle: string = 'darkgrey') {
-        ctx.save();
+        // ctx.save();
         ctx.fillStyle = 'black';
         ctx.strokeStyle = strokeStyle;
         ctx.fillRect(this._xVal - this.RADIUS, this._yVal - this.RADIUS, this.RADIUS * 2, this.RADIUS * 2);
         ctx.strokeRect(this._xVal - this.RADIUS, this._yVal - this.RADIUS, this.RADIUS * 2, this.RADIUS * 2);
-        // ctx.fill();
+        // ctx.beginPath();
+        // ctx.arc(this.x, this.y, this.SELECT_RADIUS, 0, 2*Math.PI);
         // ctx.stroke();
-        ctx.restore();
+        // ctx.restore();
     };
 
     computeSlope(pt) {

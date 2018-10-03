@@ -100,13 +100,16 @@ export default class ControlPoint {
     }
 
     drawSquare(ctx, point, strokeStyle: string = 'darkgrey') {
-        ctx.save();
+        // ctx.save();
         ctx.fillStyle = 'white';
         ctx.strokeStyle = strokeStyle;
-        ctx.fillRect(point.x - point.RADIUS, point.y - point.RADIUS, point.RADIUS * 2, point.RADIUS * 2);
-        ctx.strokeRect(point.x - point.RADIUS, point.y - point.RADIUS, point.RADIUS * 2, point.RADIUS * 2);
-        // ctx.fill();
-        // ctx.stroke();
+        // ctx.fillRect(point.x - point.RADIUS, point.y - point.RADIUS, point.RADIUS * 2, point.RADIUS * 2);
+        // ctx.strokeRect(point.x - point.RADIUS, point.y - point.RADIUS, point.RADIUS * 2, point.RADIUS * 2);
+        ctx.beginPath();
+        ctx.arc(this.x, this.y, point.RADIUS, 0, 2*Math.PI);
+        ctx.stroke();
+        ctx.fill();
+        // ctx.restore();
     };
 
     draw(ctx, pointStrokeStyle: string = 'darkgrey') {
