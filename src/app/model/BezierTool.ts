@@ -380,6 +380,7 @@ export default class BezierTool {
             this.render();
         }
         this._doubleClick = false;
+        this.renderImageProcessingCanvas();
     }
 
     handleTouchEnd(event: any): void {
@@ -402,7 +403,6 @@ export default class BezierTool {
             }
         }
         this.gCtx.drawImage(this.gBackCanvas, 0, 0);
-        this.renderImageProcessingCanvas();
     }
 
     renderImageProcessingCanvas(): void {
