@@ -20,8 +20,8 @@
     <div id="container">
         <fieldset>
             <legend>Path Edit Modes</legend>
+            <label><input style="margin-right: 6px;" type="radio" name="mode" id="selectMode" />select</label>
             <label><input style="margin-right: 6px;" type="radio" name="mode" id="addMode" checked/>add</label>
-            <label><input style="margin-right: 6px;" type="radio" name="mode" id="selectMode" />move</label>
             <label><input style="margin-right: 6px;" type="radio" name="mode" id="removeMode" />remove</label>
             <label><input style="margin-right: 6px;" type="radio" name="mode" id="drawMode" />draw</label>
             <label><input style="margin-right: 6px;" type="checkbox" name="lockControl" id="lockControl" checked/>lock control points</label>
@@ -61,9 +61,11 @@
             <div class="col">
                 <canvas id="paintme" width="500" height="500"></canvas>
             </div>
+            <!--
             <div class="col">
                 <textarea id="putJS"></textarea>
             </div>
+            -->
             <fieldset style="margin-top: 20px;">
                 <legend>Trace Path Over Image</legend>
                 Image URL: <input type="text" id="imageSrc" value="assets/penguin.png"/> <button id="addImgSrc">Set Canvas Background</button>

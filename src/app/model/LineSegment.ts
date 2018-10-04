@@ -16,14 +16,17 @@ export default class LineSegment {
     public selectedPoint: Point | ControlPoint; // Specific point on the LineSegment that is selected.
     public type: LineSegmentType;
     public time: number;
+    public controlPointsActive: boolean;
 
     private _controlPointMagnitude: number = 20;
+
 
     constructor(pt: Point, prev: LineSegment, type: LineSegmentType = LineSegmentType.SMOOTH, time?: number) {
         this.pt = pt;
         this.prev = prev;
         this.type = type;
         this.time = time || new Date().getTime();
+        this.controlPointsActive = false;
 
         if (this.prev) {
 
@@ -58,11 +61,11 @@ export default class LineSegment {
         let strokeStyle: string = this.type == LineSegmentType.SMOOTH ? 'darkgrey' : 'red';
         this.pt.drawSquare(ctx, strokeStyle);
         // Draw control points if we have them
-        if (this.ctrlPt1) {
+        if (this.prev && this.prev.controlPointsActive && this.ctrlPt1) {
             let ctrlPt1StrokeStyle: string = this.prev.type == LineSegmentType.SMOOTH ? 'darkgrey' : 'red';
             this.ctrlPt1.draw(ctx, ctrlPt1StrokeStyle);
         }
-        if (this.ctrlPt2) {
+        if (this.controlPointsActive && this.ctrlPt2) {
             this.ctrlPt2.draw(ctx, strokeStyle);
         }
         // If there are at least two points, draw curve.
@@ -110,10 +113,10 @@ export default class LineSegment {
         if (this.pathPointIntersects(pos)) {
             this.selectedPoint = this.pt;
             return true;
-        } else if (this.ctrlPt1 && this.ctrlPt1.contains(pos)) {
-            this.selectedPoint = this.ctrlPt1;
+        } else if (this.controlPointsActive && this.next && this.next.ctrlPt1 && this.next.ctrlPt1.contains(pos)) {
+            this.selectedPoint = this.next.ctrlPt1;
             return true;
-        } else if (this.ctrlPt2 && this.ctrlPt2.contains(pos)) {
+        } else if (this.controlPointsActive && this.ctrlPt2 && this.ctrlPt2.contains(pos)) {
             this.selectedPoint = this.ctrlPt2;
             return true;
         }

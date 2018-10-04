@@ -43,15 +43,25 @@ export default class BezierPath {
 
     // returns true if point selected
     selectPoint(pos: Point): boolean {
+        let result: boolean = false;
         var current: LineSegment = this.head;
         while (current != null) {
-          if (current.findInLineSegment(pos)) {
-            this.selectedSegment = current;
-            return true;
-          }
-          current = current.next;
+            if (current.findInLineSegment(pos)) {
+                this.selectedSegment = current;
+                this.selectedSegment.controlPointsActive = true;
+                result = true;
+            }
+            current = current.next;
         }
-        return false;
+        return result;
+    }
+
+    deselectPoints(): void {
+        var current: LineSegment = this.head;
+        while (current != null) {
+            current.controlPointsActive = false;
+            current = current.next;
+        }
     }
 
     // returns true if point deleted

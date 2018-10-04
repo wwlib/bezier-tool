@@ -11,7 +11,7 @@ export default class Point {
         this._yVal = newY;
 
         this.RADIUS = 3;
-        this.SELECT_RADIUS = this.RADIUS * 4;
+        this.SELECT_RADIUS = this.RADIUS * 2;
     }
 
     get x() {

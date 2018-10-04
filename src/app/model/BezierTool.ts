@@ -3,6 +3,14 @@ import BezierPath from './BezierPath';
 import Point from './Point';
 import { LineSegmentType } from './LineSegment';
 
+export enum Mode {
+    Adding,
+    Selecting,
+    Dragging,
+    Removing,
+    Drawing
+}
+
 export default class BezierTool {
 
     static ALT_KEY_DOWN: boolean;
@@ -13,7 +21,7 @@ export default class BezierTool {
     public gBackCanvas;
     public gBackCtx;
     public gBezierPath: BezierPath;
-    public gState;
+    public mode: Mode; //gState;
     public gBackgroundImg: HTMLImageElement;
     public WIDTH;
     public HEIGHT;
@@ -21,13 +29,13 @@ export default class BezierTool {
     public simplifyPathTolerance: number;
     public minDrawPointSpacing: number;
 
-    public Mode = {
-        kAdding: { value: 0, name: "Adding" },
-        kSelecting: { value: 1, name: "Selecting" },
-        kDragging: { value: 2, name: "Dragging" },
-        kRemoving: { value: 3, name: "Removing" },
-        kDrawing: { value: 4, name: "Drawing" },
-    };
+    // public Mode = {
+    //     kAdding: { value: 0, name: "Adding" },
+    //     kSelecting: { value: 1, name: "Selecting" },
+    //     kDragging: { value: 2, name: "Dragging" },
+    //     kRemoving: { value: 3, name: "Removing" },
+    //     kDrawing: { value: 4, name: "Drawing" },
+    // };
 
     private _mouseDownHandler: any = this.handleDown.bind(this);
     private _mouseUpHandler: any = this.handleUp.bind(this);
@@ -40,6 +48,11 @@ export default class BezierTool {
     private _previousClickTime: number;
     private _doubleClick: boolean;
 
+    private _addButton: HTMLInputElement;
+    private _selectButton: HTMLInputElement;
+    private _removeButton: HTMLInputElement;
+    private _drawButton: HTMLInputElement;
+
     constructor() {
         this.gCanvas = document.getElementById('paintme');
         this.gCtx = this.gCanvas.getContext('2d');
@@ -51,8 +64,6 @@ export default class BezierTool {
         this.gBackCanvas.width = this.WIDTH;
         this.gBackCtx = this.gBackCanvas.getContext('2d');
 
-        this.gState = this.Mode.kAdding;
-
         if (this._iOSDevice) {
             this.gCanvas.addEventListener('touchstart', this._touchstartHandler, {passive: false});
             this.gCanvas.addEventListener('touchend', this._touchendHandler, {passive: false});
@@ -61,25 +72,27 @@ export default class BezierTool {
             this.gCanvas.addEventListener("mouseup", this._mouseUpHandler, false);
         }
 
-        var selectButton = document.getElementById('selectMode');
-        selectButton.addEventListener("click", () => {
-            this.gState = this.Mode.kSelecting;
+        this._selectButton = document.getElementById('selectMode') as HTMLInputElement;
+        this._selectButton.addEventListener("click", () => {
+            this.setMode(Mode.Selecting);
         }, false);
 
-        var addButton = document.getElementById('addMode');
-        addButton.addEventListener("click", () => {
-            this.gState = this.Mode.kAdding;
+        this._addButton = document.getElementById('addMode') as HTMLInputElement;
+        this._addButton.addEventListener("click", () => {
+            this.setMode(Mode.Adding);
         }, false);
 
-        var removeButton = document.getElementById('removeMode');
-        removeButton.addEventListener("click", () => {
-            this.gState = this.Mode.kRemoving;
+        this._removeButton = document.getElementById('removeMode') as HTMLInputElement;
+        this._removeButton.addEventListener("click", () => {
+            this.setMode(Mode.Removing);
         }, false);
 
-        var drawButton = document.getElementById('drawMode');
-        drawButton.addEventListener("click", () => {
-            this.gState = this.Mode.kDrawing;
+        this._drawButton = document.getElementById('drawMode') as HTMLInputElement;
+        this._drawButton.addEventListener("click", () => {
+            this.setMode(Mode.Drawing);
         }, false);
+
+        this.setMode(Mode.Adding);
 
         this.createSmoothLineSegments = true;
         var lockButton: HTMLInputElement = document.getElementById('lockControl') as HTMLInputElement;
@@ -115,7 +128,8 @@ export default class BezierTool {
                 this.gBezierPath = null;
                 this.gBackCtx.clearRect(0, 0, this.WIDTH, this.HEIGHT);
                 this.gCtx.clearRect(0, 0, this.WIDTH, this.HEIGHT);
-                this.gState = this.Mode.kAdding;
+                // this.gState = this.Mode.kAdding;
+                this.setMode(Mode.Adding);
             }
 
         }, false);
@@ -152,6 +166,31 @@ export default class BezierTool {
         this._doubleClick = false;
     }
 
+    setMode(mode: Mode): void {
+        console.log(`setMode: ${Mode[mode]}`)
+        this.mode = mode;
+
+        this._addButton.checked = false;
+        this._selectButton.checked = false;
+        this._removeButton.checked = false;
+        this._drawButton.checked = false;
+
+        switch (mode) {
+            case Mode.Adding:
+                this._addButton.checked = true;
+                break;
+            case Mode.Selecting:
+                this._selectButton.checked = true;
+                break;
+            case Mode.Removing:
+                this._removeButton.checked = true;
+                break;
+            case Mode.Drawing:
+                this._drawButton.checked = true;
+                break;
+        }
+    }
+
     // Modified from http://diveintohtml5.org/examples/halma.js
     getMousePosition(e: any) {
         var x;
@@ -183,7 +222,6 @@ export default class BezierTool {
                 this.gBezierPath.addPoint(pos, lineSegmentType);
             }
         }
-        this.render();
     }
 
     handleDownDraw(pos: Point) {
@@ -195,9 +233,9 @@ export default class BezierTool {
                 this.gBezierPath.addPoint(pos, lineSegmentType);
             }
         }
-        this.gState = this.Mode.kDrawing;
+        // this.gState = this.Mode.kDrawing;
+        this.setMode(Mode.Drawing);
         this.gCanvas.addEventListener("mousemove", this._mouseMoveHandler, false);
-        this.render();
     }
 
     // Return true/false if dragging mode
@@ -208,19 +246,20 @@ export default class BezierTool {
         } else {
             var selected = this.gBezierPath.selectPoint(pos);
             if (selected) {
-
                 if (BezierTool.ALT_KEY_DOWN || this._doubleClick) {
                     if (this.gBezierPath.selectedSegment.type == LineSegmentType.SMOOTH) {
                         this.gBezierPath.selectedSegment.type = LineSegmentType.CORNER;
                     } else {
                         this.gBezierPath.selectedSegment.type = LineSegmentType.SMOOTH;
                     }
-                    this.render();
                 } else {
-                    this.gState = this.Mode.kDragging;
+                    // this.gState = this.Mode.kDragging;
+                    this.setMode(Mode.Dragging);
                     this.gCanvas.addEventListener("mousemove", this._mouseMoveHandler, false);
                 }
                 result = true;
+            } else {
+                this.gBezierPath.deselectPoints();
             }
         }
         return result;
@@ -231,8 +270,9 @@ export default class BezierTool {
             //
         } else {
             var deleted = this.gBezierPath.deletePoint(pos);
-            if (deleted)
-                this.render();
+            if (!deleted) {
+                this.setMode(Mode.Selecting);
+            }
         }
     }
 
@@ -244,21 +284,22 @@ export default class BezierTool {
             console.log(`double-click`);
         }
         this._previousClickTime = new Date().getTime();
-        // console.log(`handleDown: state: ${this.gState.name}`)
-        switch (this.gState) {
-            case this.Mode.kAdding:
+        // console.log(`handleDown: mode: ${Mode[this.mode]}`)
+        switch (this.mode) {
+            case Mode.Adding:
                 this.handleDownAdd(pos);
                 break;
-            case this.Mode.kSelecting:
+            case Mode.Selecting:
                 this.handleDownSelect(pos);
                 break;
-            case this.Mode.kRemoving:
+            case Mode.Removing:
                 this.handleDownRemove(pos);
                 break;
-            case this.Mode.kDrawing:
+            case Mode.Drawing:
                 this.handleDownDraw(pos);
                 break;
         }
+        this.render();
         event.preventDefault();
     }
 
@@ -276,9 +317,9 @@ export default class BezierTool {
 
     handleMouseMove(e: any) {
         var pos = this.getMousePosition(e);
-        if (this.gState == this.Mode.kDragging) {
+        if (this.mode == Mode.Dragging) {
             this.gBezierPath.updateSelected(pos);
-        } else if (this.gState == this.Mode.kDrawing) {
+        } else if (this.mode == Mode.Drawing) {
             let lineSegmentType = this.createSmoothLineSegments ? LineSegmentType.SMOOTH : LineSegmentType.CORNER;
             if (!this.gBezierPath.tail.pathPointIntersects(pos, this.minDrawPointSpacing)) {
                 this.gBezierPath.addPoint(pos, lineSegmentType);
@@ -302,13 +343,13 @@ export default class BezierTool {
         this.gCanvas.removeEventListener("mousemove", this._mouseMoveHandler, false);
         this.gCanvas.removeEventListener('touchmove', this._touchmoveHandler, false);
 
-        if (this.gState == this.Mode.kDragging) {
+        if (this.mode == Mode.Dragging) {
             this.gBezierPath.clearSelected();
-            this.gState = this.Mode.kSelecting;
-        } else if (this.gState == this.Mode.kDrawing) {
+            this.setMode(Mode.Selecting);
+        } else if (this.mode == Mode.Drawing) {
             this.gBezierPath.clearSelected();
             this.gBezierPath.simplifyPath(this.simplifyPathTolerance);
-            this.gState = this.Mode.kSelecting;
+            this.setMode(Mode.Selecting);
             this.render();
         }
         this._doubleClick = false;
@@ -329,7 +370,9 @@ export default class BezierTool {
         if (this.gBezierPath) {
             this.gBezierPath.draw(this.gBackCtx);
             var codeBox = document.getElementById('putJS');
-            codeBox.innerHTML = this.gBezierPath.toJSString();
+            if (codeBox) {
+                codeBox.innerHTML = this.gBezierPath.toJSString();
+            }
         }
         this.gCtx.drawImage(this.gBackCanvas, 0, 0);
     }
