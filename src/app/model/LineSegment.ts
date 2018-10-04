@@ -60,17 +60,20 @@ export default class LineSegment {
     draw(ctx: CanvasRenderingContext2D, options?: any) {
         options = options || {};
         let hideAnchorPoints: boolean = options.hideAnchorPoints;
+        let hideControlPoints: boolean = options.hideControlPoints;
         let strokeStyle: string = this.type == LineSegmentType.SMOOTH ? 'magenta' : 'red';
         if (!hideAnchorPoints) {
             this.pt.drawSquare(ctx, strokeStyle);
         }
         // Draw control points if we have them
-        if (this.prev && this.prev.controlPointsActive && this.ctrlPt1) {
-            let ctrlPt1StrokeStyle: string = this.prev.type == LineSegmentType.SMOOTH ? 'magenta' : 'red';
-            this.ctrlPt1.draw(ctx, ctrlPt1StrokeStyle);
-        }
-        if (this.controlPointsActive && this.ctrlPt2) {
-            this.ctrlPt2.draw(ctx, strokeStyle);
+        if (!hideControlPoints) {
+            if (this.prev && this.prev.controlPointsActive && this.ctrlPt1) {
+                let ctrlPt1StrokeStyle: string = this.prev.type == LineSegmentType.SMOOTH ? 'magenta' : 'red';
+                this.ctrlPt1.draw(ctx, ctrlPt1StrokeStyle);
+            }
+            if (this.controlPointsActive && this.ctrlPt2) {
+                this.ctrlPt2.draw(ctx, strokeStyle);
+            }
         }
         // If there are at least two points, draw curve.
         if (this.prev) {
@@ -113,14 +116,17 @@ export default class LineSegment {
         }
     }
 
-    findInLineSegment(pos: Point): boolean {
-        if (this.pathPointIntersects(pos)) {
+    findInLineSegment(pos: Point, options?: any): boolean {
+        options = options || {};
+        let hideAnchorPoints: boolean = options.hideAnchorPoints;
+        let hideControlPoints: boolean = options.hideControlPoints;
+        if (!hideAnchorPoints && this.pathPointIntersects(pos)) {
             this.selectedPoint = this.pt;
             return true;
-        } else if (this.controlPointsActive && this.next && this.next.ctrlPt1 && this.next.ctrlPt1.contains(pos)) {
+        } else if (!hideControlPoints && this.controlPointsActive && this.next && this.next.ctrlPt1 && this.next.ctrlPt1.contains(pos)) {
             this.selectedPoint = this.next.ctrlPt1;
             return true;
-        } else if (this.controlPointsActive && this.ctrlPt2 && this.ctrlPt2.contains(pos)) {
+        } else if (!hideControlPoints && this.controlPointsActive && this.ctrlPt2 && this.ctrlPt2.contains(pos)) {
             this.selectedPoint = this.ctrlPt2;
             return true;
         }

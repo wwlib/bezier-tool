@@ -32,6 +32,7 @@ export default class BezierTool {
     public HEIGHT;
     public createSmoothLineSegments: boolean;
     public hideAnchorPoints: boolean;
+    public hideControlPoints: boolean;
     public simplifyPathTolerance: number;
     public minDrawPointSpacing: number;
 
@@ -116,6 +117,12 @@ export default class BezierTool {
             this.render();
         }, false);
 
+        this.hideControlPoints = false;
+        var controlButton: HTMLInputElement = document.getElementById('hideControlPoints') as HTMLInputElement;
+        controlButton.addEventListener("click", () => {
+            this.hideControlPoints = controlButton.checked;
+            this.render();
+        }, false);
 
         var smoothingSlider: HTMLInputElement = document.getElementById("smoothingSlider")as HTMLInputElement;
         var smoothingValue: HTMLOutputElement = document.getElementById("smoothingValue")as HTMLOutputElement;
@@ -146,6 +153,8 @@ export default class BezierTool {
                 this.gCtx.clearRect(0, 0, this.WIDTH, this.HEIGHT);
                 // this.gState = this.Mode.kAdding;
                 this.setMode(Mode.Adding);
+                this.render();
+                this.renderImageProcessingCanvas();
             }
 
         }, false);
@@ -269,7 +278,7 @@ export default class BezierTool {
         if (!this.gBezierPath) {
             result = false;
         } else {
-            var selected = this.gBezierPath.selectPoint(pos);
+            var selected = this.gBezierPath.selectPoint(pos, {hideAnchorPoints: this.hideAnchorPoints, hideControlPoints: this.hideControlPoints});
             if (selected) {
                 if (BezierTool.ALT_KEY_DOWN || this._doubleClick) {
                     if (this.gBezierPath.selectedSegment.type == LineSegmentType.SMOOTH) {
@@ -396,7 +405,7 @@ export default class BezierTool {
         }
 
         if (this.gBezierPath) {
-            this.gBezierPath.draw(this.gBackCtx, {hideAnchorPoints: this.hideAnchorPoints});
+            this.gBezierPath.draw(this.gBackCtx, {hideAnchorPoints: this.hideAnchorPoints, hideControlPoints: this.hideControlPoints});
             var codeBox = document.getElementById('putJS');
             if (codeBox) {
                 codeBox.innerHTML = this.gBezierPath.toJSString();

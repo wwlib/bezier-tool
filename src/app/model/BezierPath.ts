@@ -43,11 +43,12 @@ export default class BezierPath {
     };
 
     // returns true if point selected
-    selectPoint(pos: Point): boolean {
+    selectPoint(pos: Point, options?: any): boolean {
+        options = options || {};
         let result: boolean = false;
         var current: LineSegment = this.head;
         while (current != null) {
-            if (current.findInLineSegment(pos)) {
+            if (current.findInLineSegment(pos, options)) {
                 this.selectedSegment = current;
                 this.selectedSegment.controlPointsActive = true;
                 result = true;
