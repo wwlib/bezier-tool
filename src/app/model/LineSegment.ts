@@ -1,5 +1,6 @@
 import ControlPoint from './ControlPoint';
 import Point from './Point';
+import { Vector2 } from 'math.gl';
 
 export enum LineSegmentType {
     SMOOTH,
@@ -142,36 +143,44 @@ export default class LineSegment {
         this.selectedPoint.translate(dist.xDelta, dist.yDelta);
     };
 
-
-    interpolateVertices(divisions: number = 3) {
-        let vertices: any[] = [];
-        for (let i: number = 1; i <= divisions; i++) {
-            let t: number = i / divisions;
-            let vertex: any = this.CalculateCubicBezierPoint(t,
-                // controlPoints [nodeIndex].position,
-                // controlPoints [nodeIndex + 1].position,
-                // controlPoints [nodeIndex + 2].position,
-                // controlPoints [nodeIndex + 3].position
-                this.pt,
-                this.ctrlPt1,
-                this.ctrlPt2,
-                this.next.pt
-            );
-            vertices.push(vertex);
-        }
+    getVertices(): any[] {
+        // return ([{ x: this.pt.x, y: this.pt.y }]);
+        return this.interpolateVertices();
     }
 
-    CalculateCubicBezierPoint(t: number, p0: any, p1: any, p2: any, p3: any): any {
+    interpolateVertices(divisions: number = 10): any[] {
+        let vertices: any[] = [];
+        if (this.prev && this.ctrlPt1 && this.ctrlPt2) {
+            vertices.push({ x: this.prev.pt.x, y: this.prev.pt.y }); // previous point
+            for (let i: number = 1; i <= divisions; i++) {
+                let t: number = i / divisions;
+                let vector2: Vector2 = this.CalculateCubicBezierPoint(t,
+                    // controlPoints [nodeIndex].position,
+                    // controlPoints [nodeIndex + 1].position,
+                    // controlPoints [nodeIndex + 2].position,
+                    // controlPoints [nodeIndex + 3].position
+                    new Vector2(this.prev.pt.asArray()),
+                    new Vector2(this.ctrlPt1.asArray()),
+                    new Vector2(this.ctrlPt2.asArray()),
+                    new Vector2(this.pt.asArray())
+                );
+                vertices.push({x: vector2[0], y: vector2[1]});
+            }
+        }
+        return vertices;
+    }
+
+    CalculateCubicBezierPoint(t: number, p0: Vector2, p1: Vector2, p2: Vector2, p3: Vector2): Vector2 {
         let u = 1 - t;
         let tt = t * t;
         let uu = u * u;
         let uuu = uu * u;
         let ttt = tt * t;
 
-        let p: any = uuu * p0;
-        p += 3 * uu * t * p1;
-        p += 3 * u * tt * p2;
-        p += ttt * p3;
+        let p: Vector2 = p0.scale(uuu);
+        p.add(p1.scale(3 * uu * t));
+        p.add(p2.scale(3 * u * tt));
+        p.add(p3.scale(ttt));
 
         return p;
     }

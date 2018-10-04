@@ -45,6 +45,10 @@ export default class ControlPoint {
         return new Point(this.x, this.y);
     };
 
+    asArray(): number[] {
+        return [this.x, this.y];
+    }
+
     get x() {
         return this.origin().x + this.xDelta;
     }

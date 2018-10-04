@@ -22,6 +22,10 @@ export default class Point {
         return this._yVal;
     }
 
+    asArray(): number[] {
+        return [this._xVal, this._yVal];
+    }
+
     json(): any {
         return {x: this._xVal, y: this._yVal};
     }

@@ -139,8 +139,9 @@ export default class BezierPath {
         var current: LineSegment = this.head;
         while (current != null) {
             let currentTime: number = current.time = this.startTime;
-            let segment: any = {x: current.pt.x, y: current.pt.y, t: currentTime};
-            vertices.push(segment);
+            // let segment: any = {x: current.pt.x, y: current.pt.y, t: currentTime};
+
+            vertices.push(...current.getVertices());
             current = current.next;
         }
         return vertices;
