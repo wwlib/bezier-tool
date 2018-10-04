@@ -15,6 +15,9 @@ export default class BezierTool {
 
     static ALT_KEY_DOWN: boolean;
     static META_KEY_DOWN: boolean;
+    static CTRL_KEY_DOWN: boolean;
+    static SHIFT_KEY_DOWN: boolean;
+    static X_KEY_DOWN: boolean;
 
     public gCanvas: HTMLCanvasElement;
     public gCtx: CanvasRenderingContext2D
@@ -28,6 +31,7 @@ export default class BezierTool {
     public WIDTH;
     public HEIGHT;
     public createSmoothLineSegments: boolean;
+    public hideAnchorPoints: boolean;
     public simplifyPathTolerance: number;
     public minDrawPointSpacing: number;
 
@@ -60,6 +64,9 @@ export default class BezierTool {
         this.gCtx = this.gCanvas.getContext('2d');
         this.HEIGHT = this.gCanvas.height;
         this.WIDTH = this.gCanvas.width;
+
+        this.bitmapCanvas = document.getElementById("bitmapCanvas") as HTMLCanvasElement;
+        this.bitmapCtx = this.bitmapCanvas.getContext("2d");
 
         this.gBackCanvas = document.createElement('canvas');
         this.gBackCanvas.height = this.HEIGHT;
@@ -100,6 +107,13 @@ export default class BezierTool {
         var lockButton: HTMLInputElement = document.getElementById('lockControl') as HTMLInputElement;
         lockButton.addEventListener("click", () => {
             this.createSmoothLineSegments = lockButton.checked;
+        }, false);
+
+        this.hideAnchorPoints = false;
+        var anchorButton: HTMLInputElement = document.getElementById('hideAnchorPoints') as HTMLInputElement;
+        anchorButton.addEventListener("click", () => {
+            this.hideAnchorPoints = anchorButton.checked;
+            this.render();
         }, false);
 
 
@@ -155,14 +169,23 @@ export default class BezierTool {
 
         BezierTool.ALT_KEY_DOWN = false;
         BezierTool.META_KEY_DOWN = false;
+        BezierTool.CTRL_KEY_DOWN = false;
+        BezierTool.SHIFT_KEY_DOWN = false;
+
         document.onkeydown = (event: KeyboardEvent) => {
             BezierTool.ALT_KEY_DOWN = event.altKey;
             BezierTool.META_KEY_DOWN = event.metaKey;
+            BezierTool.CTRL_KEY_DOWN = event.ctrlKey;
+            BezierTool.SHIFT_KEY_DOWN = event.shiftKey;
+            BezierTool.X_KEY_DOWN = event.key == 'x';
         }
 
         document.onkeyup = (event: KeyboardEvent) => {
             BezierTool.ALT_KEY_DOWN = event.altKey;
             BezierTool.META_KEY_DOWN = event.metaKey;
+            BezierTool.CTRL_KEY_DOWN = event.ctrlKey;
+            BezierTool.SHIFT_KEY_DOWN = event.shiftKey;
+            BezierTool.X_KEY_DOWN = event.key == 'x';
         }
 
         this._previousClickTime = new Date().getTime();
@@ -254,6 +277,8 @@ export default class BezierTool {
                     } else {
                         this.gBezierPath.selectedSegment.type = LineSegmentType.SMOOTH;
                     }
+                } else if (BezierTool.SHIFT_KEY_DOWN) {
+                    this.gBezierPath.deletePoint(pos);
                 } else {
                     // this.gState = this.Mode.kDragging;
                     this.setMode(Mode.Dragging);
@@ -370,32 +395,184 @@ export default class BezierTool {
         }
 
         if (this.gBezierPath) {
-            this.gBezierPath.draw(this.gBackCtx);
+            this.gBezierPath.draw(this.gBackCtx, {hideAnchorPoints: this.hideAnchorPoints});
             var codeBox = document.getElementById('putJS');
             if (codeBox) {
                 codeBox.innerHTML = this.gBezierPath.toJSString();
             }
         }
         this.gCtx.drawImage(this.gBackCanvas, 0, 0);
+        this.renderImageProcessingCanvas();
     }
 
     renderImageProcessingCanvas(): void {
-        this.bitmapCanvas = document.getElementById("bitmapCanvas") as HTMLCanvasElement;
-        this.bitmapCtx = this.bitmapCanvas.getContext("2d");
         this.bitmapCtx.clearRect(0, 0, this.bitmapCanvas.width, this.bitmapCanvas.height);
-        if (this.gBackgroundImg) {
-            this.bitmapCtx.drawImage(this.gBackgroundImg, 0, 0, this.bitmapCanvas.width, this.bitmapCanvas.height);
-            var imgData = this.bitmapCtx.getImageData(0, 0, this.bitmapCanvas.width, this.bitmapCanvas.height);
+        if (this.gBezierPath) {
+            if (this.gBackgroundImg) {
+                this.bitmapCtx.drawImage(this.gBackgroundImg, 0, 0, this.bitmapCanvas.width, this.bitmapCanvas.height);
+            }
+            var imgData: ImageData = this.bitmapCtx.getImageData(0, 0, this.bitmapCanvas.width, this.bitmapCanvas.height);
+            // console.log(`imgData length: ${imgData.data.length}, width: ${imgData.width}, height: ${imgData.height}`);
+
             // invert colors
             // var i;
             // for (i = 0; i < imgData.data.length; i += 4) {
-            //     imgData.data[i] = 255 - imgData.data[i];
-            //     imgData.data[i+1] = 255 - imgData.data[i+1];
-            //     imgData.data[i+2] = 255 - imgData.data[i+2];
+            //     // imgData.data[i] = 255 - imgData.data[i];
+            //     // imgData.data[i+1] = 255 - imgData.data[i+1];
+            //     // imgData.data[i+2] = 255 - imgData.data[i+2];
+            //     // imgData.data[i+3] = 255;
+            //
+            //     imgData.data[i] = 128;
+            //     imgData.data[i+1] = 128;
+            //     imgData.data[i+2] = 128;
             //     imgData.data[i+3] = 255;
             // }
-            // this.bitmapCtx.putImageData(imgData, 0, 0);
+
+
+            let transparent: number = 0;
+            let polygon: any = this.gBezierPath.getAnchorVertices();
+            // console.log(`  rendering polygon: vertex count: ${polygon.length}`);
+			let i: number = 0;
+			for (let y: number = 0; y < imgData.height; y++) {
+				for (let x: number = 0; x < imgData.width; x++) {
+					// if (!this.isInPolygon(polygon, {x: x, y: y})) {
+					// 	imgData[i + 3] = transparent;
+					// } else {
+                    //     if (!this.gBackgroundImg) {
+    				// 		imgData[i] = 0;
+                    //         imgData[i + 1] = 0;
+                    //         imgData[i + 2] = 0;
+                    //     }
+					// }
+
+                    if (this.isInPolygon(polygon, {x: x, y: y})) {
+                        if (!this.gBackgroundImg) {
+                            imgData.data[i] = 128;
+                            imgData.data[i+1] = 128;
+                            imgData.data[i+2] = 128;
+                            imgData.data[i+3] = 255;
+                        }
+                    } else {
+                        imgData.data[i + 3] = transparent;
+                    }
+
+                    // imgData.data[i] = 128;
+                    // imgData.data[i+1] = 128;
+                    // imgData.data[i+2] = 128;
+                    // imgData.data[i+3] = 255;
+					i += 4;
+				}
+			}
+
+            this.bitmapCtx.putImageData(imgData, 0, 0);
+        }
+    }
+
+    isInPolygon(poly: any[], p: any): boolean {
+        let p1: any;
+        let p2: any;
+        let inside: boolean = false;
+
+        if (poly.length < 3) {
+            inside = false;
+        } else {
+                let oldPoint: any = { x: poly[poly.length - 1].x, y: poly[poly.length - 1].y };
+                for (let i: number = 0; i < poly.length; i++) {
+                    let newPoint = { x: poly[i].x, y: poly[i].y };
+                    if (newPoint.x > oldPoint.x) {
+                        p1 = oldPoint;
+                        p2 = newPoint;
+                    } else {
+                        p1 = newPoint;
+                        p2 = oldPoint;
+                    }
+
+                    if ((newPoint.x < p.x) == (p.x <= oldPoint.x)
+                        && (p.y - p1.y)*(p2.x - p1.x) < (p2.y - p1.y)*(p.x - p1.x))
+                    {
+                        inside = !inside;
+                    }
+                    oldPoint = newPoint;
+                }
+        }
+        return inside;
+    }
+
+/*
+    //// Mesh
+
+    void triangulateLine () {
+        // Create Vector2 vertices
+        // Vector2[] testVertices2D = new Vector2[] {
+        //     new Vector2(0,0),
+        //     new Vector2(0,50),
+        //     new Vector2(50,50),
+        //     new Vector2(50,100),
+        //     new Vector2(0,100),
+        //     new Vector2(0,150),
+        //     new Vector2(150,150),
+        //     new Vector2(150,100),
+        //     new Vector2(100,100),
+        //     new Vector2(100,50),
+        //     new Vector2(150,50),
+        //     new Vector2(150,0),
+        // };
+        // for (int i=0; i<testVertices2D.Length; i++) {
+        //     testVertices2D[i].Set( testVertices2D[i].x / 100,  testVertices2D[i].y / 100);
+        //     // Logger.Log("testVert: (" + testVertices2D[i].x + ", " + testVertices2D[i].y + ")");
+        // }
+
+        int pointCount = lineRenderer.positionCount - 1; // skip last point which is the same as the first
+        Vector2[] lineVertices2D = new Vector2[pointCount];
+        // Vector2 firstPoint = lineRenderer.GetPosition(0);
+        // Logger.Log("firstPoint: (" + firstPoint.x + ", " + firstPoint.y + ")");
+        for (int i=0; i<pointCount; i++) {
+            Vector2 position = lineRenderer.GetPosition(i);
+            // position.x -= firstPoint.x;
+            // position.y -= firstPoint.y;
+            // position.x /= 10;
+            // position.y /= 10;
+            lineVertices2D[i].Set(position.x, position.y);
         }
 
+        Vector2[] vertices2D = lineVertices2D;
+        // Use the triangulator to get indices for creating triangles
+        Triangulator tr = new Triangulator(vertices2D);
+        int[] indices = tr.Triangulate();
+
+        // Create the Vector3 vertices
+        Vector3[] vertices = new Vector3[vertices2D.Length];
+        for (int i=0; i<vertices.Length; i++) {
+            vertices[i] = new Vector3(vertices2D[i].x, vertices2D[i].y, 0);
+        }
+
+        // Create the mesh
+        Mesh msh = new Mesh();
+        msh.vertices = vertices;
+        msh.triangles = indices;
+        msh.RecalculateNormals();
+        msh.RecalculateBounds();
+
+        Vector2[] uv = new Vector2[vertices.Length];
+        for (int i=0; i<vertices.Length; i++) {
+            Vector2 vertex = vertices[i];
+            float x = (vertex.x + 5.12f) / 10.24f;
+            float y = 1.0f - (vertex.y - 3.84f) / -07.68f;
+            uv[i] = new Vector2(x, y);
+        }
+
+        msh.uv = uv;
+
+        // Set up game object with mesh;
+        if (!meshRenderer) {
+          meshRenderer = gameObject.AddComponent(typeof(MeshRenderer)) as MeshRenderer;
+          meshRenderer.material = material;
+        }
+        if (!filter) {
+          filter = gameObject.AddComponent(typeof(MeshFilter)) as MeshFilter;
+        }
+
+        filter.mesh = msh;
     }
+*/
 }

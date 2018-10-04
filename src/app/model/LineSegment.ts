@@ -49,7 +49,7 @@ export default class LineSegment {
     drawCurve(ctx, startPt, endPt, ctrlPt1, ctrlPt2) {
         // ctx.save();
         ctx.fillStyle = 'grey';
-        ctx.strokeStyle = 'darkgrey';
+        ctx.strokeStyle = 'magenta'; //'darkgrey';
         ctx.beginPath();
         ctx.moveTo(startPt.x, startPt.y);
         ctx.bezierCurveTo(ctrlPt1.x, ctrlPt1.y, ctrlPt2.x, ctrlPt2.y, endPt.x, endPt.y);
@@ -57,12 +57,16 @@ export default class LineSegment {
         // ctx.restore();
     }
 
-    draw(ctx) {
-        let strokeStyle: string = this.type == LineSegmentType.SMOOTH ? 'darkgrey' : 'red';
-        this.pt.drawSquare(ctx, strokeStyle);
+    draw(ctx: CanvasRenderingContext2D, options?: any) {
+        options = options || {};
+        let hideAnchorPoints: boolean = options.hideAnchorPoints;
+        let strokeStyle: string = this.type == LineSegmentType.SMOOTH ? 'magenta' : 'red';
+        if (!hideAnchorPoints) {
+            this.pt.drawSquare(ctx, strokeStyle);
+        }
         // Draw control points if we have them
         if (this.prev && this.prev.controlPointsActive && this.ctrlPt1) {
-            let ctrlPt1StrokeStyle: string = this.prev.type == LineSegmentType.SMOOTH ? 'darkgrey' : 'red';
+            let ctrlPt1StrokeStyle: string = this.prev.type == LineSegmentType.SMOOTH ? 'magenta' : 'red';
             this.ctrlPt1.draw(ctx, ctrlPt1StrokeStyle);
         }
         if (this.controlPointsActive && this.ctrlPt2) {
@@ -131,5 +135,39 @@ export default class LineSegment {
         var dist = this.selectedPoint.offsetFrom(pos);
         this.selectedPoint.translate(dist.xDelta, dist.yDelta);
     };
+
+
+    interpolateVertices(divisions: number = 3) {
+        let vertices: any[] = [];
+        for (let i: number = 1; i <= divisions; i++) {
+            let t: number = i / divisions;
+            let vertex: any = this.CalculateCubicBezierPoint(t,
+                // controlPoints [nodeIndex].position,
+                // controlPoints [nodeIndex + 1].position,
+                // controlPoints [nodeIndex + 2].position,
+                // controlPoints [nodeIndex + 3].position
+                this.pt,
+                this.ctrlPt1,
+                this.ctrlPt2,
+                this.next.pt
+            );
+            vertices.push(vertex);
+        }
+    }
+
+    CalculateCubicBezierPoint(t: number, p0: any, p1: any, p2: any, p3: any): any {
+        let u = 1 - t;
+        let tt = t * t;
+        let uu = u * u;
+        let uuu = uu * u;
+        let ttt = tt * t;
+
+        let p: any = uuu * p0;
+        p += 3 * uu * t * p1;
+        p += 3 * u * tt * p2;
+        p += ttt * p3;
+
+        return p;
+    }
 
 }

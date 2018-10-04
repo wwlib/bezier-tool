@@ -114,8 +114,8 @@ export default class ControlPoint {
 
     draw(ctx, pointStrokeStyle: string = 'darkgrey') {
         ctx.save();
-        ctx.fillStyle = 'white';
-        ctx.strokeStyle = 'lightgrey';
+        ctx.fillStyle = 'blue';
+        ctx.strokeStyle = 'magenta';
         ctx.beginPath();
         var startPt = this.origin();
         var endPt = this.asPoint();

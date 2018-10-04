@@ -25,9 +25,10 @@
             <label><input style="margin-right: 6px;" type="radio" name="mode" id="removeMode" />remove</label>
             <label><input style="margin-right: 6px;" type="radio" name="mode" id="drawMode" />draw</label>
             <label><input style="margin-right: 6px;" type="checkbox" name="lockControl" id="lockControl" checked/>lock control points</label>
+            <label><input style="margin-right: 6px;" type="checkbox" name="hideAnchorPoints" id="hideAnchorPoints"/>hide anchor points</label>
             <button id="clear" type="button">Clear all points</button>
             <br/>
-            <label>(Alt-click = toggle CORNER mode, Meta-click = force SMOOTH mode.)</label>
+            (Double-click = toggle CORNER mode, Meta-click = force SMOOTH mode.)
             <br/>
             <label for="smoothingSlider">Smoothing</label><output style="margin: 6px;" for="smoothingSlider" id="smoothingValue"></output>
             <input type="range" list="smoothing-steps" id="smoothingSlider" name="smoothing" min="0" max="200" />
@@ -46,8 +47,10 @@
               <option value="200" label="200">
             </datalist>
             <label for="spacingSlider">Spacing</label><output style="margin: 6px;" for="spacingSlider" id="spacingValue"></output>
-            <input type="range" list="spacing-steps" id="spacingSlider" name="spacing" min="20" max="100" />
+            <input type="range" list="spacing-steps" id="spacingSlider" name="spacing" min="5" max="100" />
             <datalist id="spacing-steps">
+              <option value="5" label="20">
+              <option value="10" label="20">
               <option value="20" label="20">
               <option value="30" label="30">
               <option value="40" label="40">

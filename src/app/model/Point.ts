@@ -22,20 +22,24 @@ export default class Point {
         return this._yVal;
     }
 
+    json(): any {
+        return {x: this._xVal, y: this._yVal};
+    }
+
     set(x: number, y:number) {
         this._xVal = x;
         this._yVal = y;
     };
 
-    drawSquare(ctx, strokeStyle: string = 'darkgrey') {
+    drawSquare(ctx, strokeStyle: string = 'magenta') {
         // ctx.save();
-        ctx.fillStyle = 'black';
+        ctx.fillStyle = 'white';
         ctx.strokeStyle = strokeStyle;
-        ctx.fillRect(this._xVal - this.RADIUS, this._yVal - this.RADIUS, this.RADIUS * 2, this.RADIUS * 2);
-        ctx.strokeRect(this._xVal - this.RADIUS, this._yVal - this.RADIUS, this.RADIUS * 2, this.RADIUS * 2);
-        // ctx.beginPath();
-        // ctx.arc(this.x, this.y, this.SELECT_RADIUS, 0, 2*Math.PI);
-        // ctx.stroke();
+        // ctx.fillRect(this._xVal - this.RADIUS, this._yVal - this.RADIUS, this.RADIUS * 2, this.RADIUS * 2);
+        // ctx.strokeRect(this._xVal - this.RADIUS, this._yVal - this.RADIUS, this.RADIUS * 2, this.RADIUS * 2);
+        ctx.beginPath();
+        ctx.arc(this.x, this.y, this.RADIUS, 0, 2*Math.PI);
+        ctx.stroke();
         // ctx.restore();
     };
 

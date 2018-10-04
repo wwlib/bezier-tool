@@ -30,13 +30,14 @@ export default class BezierPath {
         return newSegment;
     };
 
-    draw(ctx) {
+    draw(ctx: CanvasRenderingContext2D, options?: any) {
+        options = options || {};
         if (this.head == null)
           return;
 
         var current: LineSegment = this.head;
         while (current != null) {
-          current.draw(ctx);
+          current.draw(ctx, options);
           current = current.next;
         }
     };
@@ -130,6 +131,18 @@ export default class BezierPath {
         myString.push('  ctx.stroke();');
         myString.push('}');
         return myString.join('\n');
+    }
+
+    getAnchorVertices(): any[] {
+        let vertices: any = [];
+        var current: LineSegment = this.head;
+        while (current != null) {
+            let currentTime: number = current.time = this.startTime;
+            let segment: any = {x: current.pt.x, y: current.pt.y, t: currentTime};
+            vertices.push(segment);
+            current = current.next;
+        }
+        return vertices;
     }
 
     // Visvalingam's algorithm
