@@ -16,10 +16,12 @@ export default class BezierTool {
     static ALT_KEY_DOWN: boolean;
     static META_KEY_DOWN: boolean;
 
-    public gCanvas;
-    public gCtx;
-    public gBackCanvas;
-    public gBackCtx;
+    public gCanvas: HTMLCanvasElement;
+    public gCtx: CanvasRenderingContext2D
+    public gBackCanvas: HTMLCanvasElement;
+    public gBackCtx: CanvasRenderingContext2D;
+    public bitmapCanvas: HTMLCanvasElement;
+    public bitmapCtx: CanvasRenderingContext2D;
     public gBezierPath: BezierPath;
     public mode: Mode; //gState;
     public gBackgroundImg: HTMLImageElement;
@@ -54,7 +56,7 @@ export default class BezierTool {
     private _drawButton: HTMLInputElement;
 
     constructor() {
-        this.gCanvas = document.getElementById('paintme');
+        this.gCanvas = document.getElementById('bezierCanvas') as HTMLCanvasElement;
         this.gCtx = this.gCanvas.getContext('2d');
         this.HEIGHT = this.gCanvas.height;
         this.WIDTH = this.gCanvas.width;
@@ -145,6 +147,7 @@ export default class BezierTool {
             };
             this.gBackgroundImg.onload = () => {
                 this.render();
+                this.renderImageProcessingCanvas();
             };
             this.gBackgroundImg.src = input.value;
             // input.value = '';
@@ -167,7 +170,6 @@ export default class BezierTool {
     }
 
     setMode(mode: Mode): void {
-        console.log(`setMode: ${Mode[mode]}`)
         this.mode = mode;
 
         this._addButton.checked = false;
@@ -364,7 +366,7 @@ export default class BezierTool {
         this.gBackCtx.clearRect(0, 0, this.WIDTH, this.HEIGHT);
         this.gCtx.clearRect(0, 0, this.WIDTH, this.HEIGHT);
         if (this.gBackgroundImg) {
-            this.gBackCtx.drawImage(this.gBackgroundImg, 0, 0, this.HEIGHT, this.HEIGHT);
+            this.gBackCtx.drawImage(this.gBackgroundImg, 0, 0, this.WIDTH, this.HEIGHT);
         }
 
         if (this.gBezierPath) {
@@ -375,5 +377,25 @@ export default class BezierTool {
             }
         }
         this.gCtx.drawImage(this.gBackCanvas, 0, 0);
+    }
+
+    renderImageProcessingCanvas(): void {
+        this.bitmapCanvas = document.getElementById("bitmapCanvas") as HTMLCanvasElement;
+        this.bitmapCtx = this.bitmapCanvas.getContext("2d");
+        this.bitmapCtx.clearRect(0, 0, this.bitmapCanvas.width, this.bitmapCanvas.height);
+        if (this.gBackgroundImg) {
+            this.bitmapCtx.drawImage(this.gBackgroundImg, 0, 0, this.bitmapCanvas.width, this.bitmapCanvas.height);
+            var imgData = this.bitmapCtx.getImageData(0, 0, this.bitmapCanvas.width, this.bitmapCanvas.height);
+            // invert colors
+            // var i;
+            // for (i = 0; i < imgData.data.length; i += 4) {
+            //     imgData.data[i] = 255 - imgData.data[i];
+            //     imgData.data[i+1] = 255 - imgData.data[i+1];
+            //     imgData.data[i+2] = 255 - imgData.data[i+2];
+            //     imgData.data[i+3] = 255;
+            // }
+            // this.bitmapCtx.putImageData(imgData, 0, 0);
+        }
+
     }
 }

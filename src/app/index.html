@@ -26,6 +26,7 @@
             <label><input style="margin-right: 6px;" type="radio" name="mode" id="drawMode" />draw</label>
             <label><input style="margin-right: 6px;" type="checkbox" name="lockControl" id="lockControl" checked/>lock control points</label>
             <button id="clear" type="button">Clear all points</button>
+            <br/>
             <label>(Alt-click = toggle CORNER mode, Meta-click = force SMOOTH mode.)</label>
             <br/>
             <label for="smoothingSlider">Smoothing</label><output style="margin: 6px;" for="smoothingSlider" id="smoothingValue"></output>
@@ -59,22 +60,22 @@
             </datalist>
       </fieldset>
             <div class="col">
-                <canvas id="paintme" width="500" height="500"></canvas>
+                <canvas id="bezierCanvas" width="500" height="375"></canvas>
+                <canvas id="bitmapCanvas" width="500" height="375"></canvas>
             </div>
-            <!--
-            <div class="col">
-                <textarea id="putJS"></textarea>
-            </div>
-            -->
+
             <fieldset style="margin-top: 20px;">
                 <legend>Trace Path Over Image</legend>
-                Image URL: <input type="text" id="imageSrc" value="assets/penguin.png"/> <button id="addImgSrc">Set Canvas Background</button>
+                Image URL: <input type="text" id="imageSrc" value="assets/peter-rabbit.jpg"/> <button id="addImgSrc">Set Canvas Background</button>
             </fieldset>
             <fieldset style="margin-top: 20px;">
                 <legend>Project</legend>
                 <p>Source code: <a href="https://github.com/wwlib/bezier-tool">github</a></p>
                 <p>Based on Victoria Kirst's: <a href="http://www.victoriakirst.com/beziertool/">beziertool</a> <a href="https://github.com/vrk/beziertool/">github</a></p>
             </fieldset>
+            <div class="col">
+                <textarea id="putJS"></textarea>
+            </div>
     </div>
 
 </body>
