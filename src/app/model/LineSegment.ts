@@ -1,5 +1,6 @@
-import ControlPoint from './ControlPoint';
-import Point from './Point';
+import Point, { PointShape } from './Point';
+import ControlHandle, { ControlHandleOptions } from './ControlHandle';
+import AnchorPoint from './AnchorPoint';
 import { Vector2 } from 'math.gl';
 
 export enum LineSegmentType {
@@ -7,25 +8,38 @@ export enum LineSegmentType {
     CORNER
 }
 
+export type LineSegmentOptions = {
+    anchorPointShape: PointShape;
+    controlPointShape: PointShape;
+    anchorPointColor: string;
+    controlPointColor: string;
+    anchorPointRadius: number;
+    controlPointRadius: number;
+    lineColor: string;
+    lineWeight: number;
+}
+
 export default class LineSegment {
 
-    public pt: Point; // Path point.
+    public pt: AnchorPoint; // Path point.
     public next: LineSegment; // Next LineSegment in path
     public prev: LineSegment; // Previous LineSegment in path
-    public selectedPoint: Point | ControlPoint; // Specific point on the LineSegment that is selected.
+    public selectedPoint: AnchorPoint | ControlHandle; // Specific point on the LineSegment that is selected.
     public type: LineSegmentType;
     public time: number;
     public controlPointsActive: boolean;
 
-    private _ctrlPt1: ControlPoint; // Control point 1.
-    private _ctrlPt2: ControlPoint; // Control point 2.
+    private _ctrlPt1: ControlHandle; // Control point 1.
+    private _ctrlPt2: ControlHandle; // Control point 2.
     private _controlPointMagnitude: number = 20;
+    private _options: LineSegmentOptions;
 
 
-    constructor(pt: Point, prev: LineSegment, type: LineSegmentType = LineSegmentType.SMOOTH, time?: number) {
+    constructor(pt: AnchorPoint, prev: LineSegment, type: LineSegmentType = LineSegmentType.SMOOTH, options: LineSegmentOptions, time?: number) {
         this.pt = pt;
         this.prev = prev;
         this.type = type;
+        this._options = options;
         this.time = time || new Date().getTime();
         this.controlPointsActive = false;
 
@@ -49,34 +63,34 @@ export default class LineSegment {
             if (this._ctrlPt1) this._ctrlPt1.dispose();
             if (this._ctrlPt2) this._ctrlPt2.dispose();
 
-            this._ctrlPt1 = new ControlPoint(_ctrlPt1Angle, this._controlPointMagnitude, this, true);
-            this._ctrlPt2 = new ControlPoint(_ctrlPt2Angle, this._controlPointMagnitude, this, false);
+            this._ctrlPt1 = new ControlHandle(_ctrlPt1Angle, this._controlPointMagnitude, this, true, <ControlHandleOptions>this._options);
+            this._ctrlPt2 = new ControlHandle(_ctrlPt2Angle, this._controlPointMagnitude, this, false, <ControlHandleOptions>this._options);
         }
     }
 
-    get ctrlPt1(): ControlPoint {
+    get ctrlPt1(): ControlHandle {
         return this._ctrlPt1;
     }
 
-    set ctrlPt1(ctrlPoint: ControlPoint) {
+    set ctrlPt1(ctrlPoint: ControlHandle) {
         this._ctrlPt1.dispose();
         this._ctrlPt1 = ctrlPoint;
         this._ctrlPt1.owner = this;
     }
 
-    get ctrlPt2(): ControlPoint {
+    get ctrlPt2(): ControlHandle {
         return this._ctrlPt2;
     }
 
-    set ctrlPt2(ctrlPoint: ControlPoint) {
+    set ctrlPt2(ctrlPoint: ControlHandle) {
         this._ctrlPt2.dispose();
         this._ctrlPt2 = ctrlPoint;
         this._ctrlPt2.owner = this;
     }
 
     drawCurve(ctx, startPt, endPt, _ctrlPt1, _ctrlPt2) {
-        ctx.fillStyle = 'grey';
-        ctx.strokeStyle = 'magenta'; //'darkgrey';
+        ctx.fillStyle = 'white';
+        ctx.strokeStyle = this._options.lineColor; //'magenta'; //'darkgrey';
         ctx.beginPath();
         ctx.moveTo(startPt.x, startPt.y);
         ctx.bezierCurveTo(_ctrlPt1.x, _ctrlPt1.y, _ctrlPt2.x, _ctrlPt2.y, endPt.x, endPt.y);
@@ -87,25 +101,25 @@ export default class LineSegment {
         options = options || {};
         let hideAnchorPoints: boolean = options.hideAnchorPoints;
         let hideControlPoints: boolean = options.hideControlPoints;
-        let strokeStyle: string = this.type == LineSegmentType.SMOOTH ? 'magenta' : 'red';
-        if (!hideAnchorPoints) {
-            this.pt.drawSquare(ctx, strokeStyle);
-        }
-        // Draw control points if we have them
-        if (!hideControlPoints) {
-            if (this.prev && this.prev.controlPointsActive && this._ctrlPt1) {
-                let _ctrlPt1StrokeStyle: string = this.prev.type == LineSegmentType.SMOOTH ? 'magenta' : 'red';
-                this._ctrlPt1.draw(ctx, _ctrlPt1StrokeStyle);
-            }
-            if (this.controlPointsActive && this._ctrlPt2) {
-                this._ctrlPt2.draw(ctx, strokeStyle);
-            }
-        }
+
         // If there are at least two points, draw curve.
         if (this.prev) {
             this.drawCurve(ctx, this.prev.pt, this.pt, this._ctrlPt1, this._ctrlPt2);
         }
 
+        if (!hideAnchorPoints) {
+            this.pt.draw(ctx, this._options.anchorPointShape, this._options.anchorPointColor);
+        }
+
+        // Draw control points if we have them
+        if (!hideControlPoints) {
+            if (this.prev && this.prev.controlPointsActive && this._ctrlPt1) {
+                this._ctrlPt1.draw(ctx, this._options.controlPointShape, this._options.controlPointColor);
+            }
+            if (this.controlPointsActive && this._ctrlPt2) {
+                this._ctrlPt2.draw(ctx, this._options.controlPointShape, this._options.controlPointColor);
+            }
+        }
     }
 
     toJSString() {

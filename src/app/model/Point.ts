@@ -1,17 +1,22 @@
+export enum PointShape {
+    Square,
+    Circle
+}
+
 export default class Point {
 
-    private _xVal: number;
-    private _yVal: number;
+    protected _xVal: number;
+    protected _yVal: number;
 
     public RADIUS;
     public SELECT_RADIUS;
 
-    constructor(newX, newY) {
+    constructor(newX: number, newY: number, radius?: number) {
         this._xVal = newX;
         this._yVal = newY;
 
-        this.RADIUS = 3;
-        this.SELECT_RADIUS = this.RADIUS * 2;
+        this.RADIUS = radius || 3;
+        this.SELECT_RADIUS = this.RADIUS + 2;
     }
 
     get x() {
@@ -35,17 +40,9 @@ export default class Point {
         this._yVal = y;
     };
 
-    drawSquare(ctx, strokeStyle: string = 'magenta') {
-        // ctx.save();
-        ctx.fillStyle = 'white';
-        ctx.strokeStyle = strokeStyle;
-        // ctx.fillRect(this._xVal - this.RADIUS, this._yVal - this.RADIUS, this.RADIUS * 2, this.RADIUS * 2);
-        // ctx.strokeRect(this._xVal - this.RADIUS, this._yVal - this.RADIUS, this.RADIUS * 2, this.RADIUS * 2);
-        ctx.beginPath();
-        ctx.arc(this.x, this.y, this.RADIUS, 0, 2*Math.PI);
-        ctx.stroke();
-        // ctx.restore();
-    };
+    draw(ctx: CanvasRenderingContext2D, shape: PointShape, strokeStyle: string): void {
+        console.log(`Point: draw: unimpemented.`);
+    }
 
     computeSlope(pt) {
         return (pt.y - this._yVal) / (pt.x - this._xVal);

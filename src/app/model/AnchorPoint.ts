@@ -1,6 +1,6 @@
 import Point, { PointShape } from './Point';
 
-export default class ControlPoint extends Point {
+export default class AnchorPoint extends Point {
 
     constructor(newX: number, newY: number, radius?: number) {
         super(newX, newY, radius);

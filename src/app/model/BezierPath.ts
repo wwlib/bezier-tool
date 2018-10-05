@@ -1,5 +1,6 @@
-import LineSegment, { LineSegmentType } from './LineSegment';
+import LineSegment, { LineSegmentType, LineSegmentOptions } from './LineSegment';
 import Point from './Point';
+import AnchorPoint from './AnchorPoint';
 
 export default class BezierPath {
 
@@ -9,16 +10,18 @@ export default class BezierPath {
     public startTime: number;
     public length: number;
 
-    constructor(startPoint: Point, lineSegmentType: LineSegmentType = LineSegmentType.SMOOTH, startTime?: number) {
+    constructor(startPoint: Point, lineSegmentType: LineSegmentType = LineSegmentType.SMOOTH, options: LineSegmentOptions, startTime?: number) {
         this.head = null;
         this.tail = null;
         this.length = 0;
-        this.addPoint(startPoint, lineSegmentType);
+        let anchorPoint: AnchorPoint = new AnchorPoint(startPoint.x, startPoint.y, options.anchorPointRadius);
+        this.addPoint(anchorPoint, lineSegmentType, options);
         this.startTime = startTime || new Date().getTime();
     }
 
-    addPoint(pt: Point, lineSegmentType: LineSegmentType = LineSegmentType.SMOOTH) {
-        var newSegment: LineSegment = new LineSegment(pt, this.tail, lineSegmentType);
+    addPoint(pt: Point, lineSegmentType: LineSegmentType = LineSegmentType.SMOOTH, options: LineSegmentOptions) {
+        let anchorPoint: AnchorPoint = new AnchorPoint(pt.x, pt.y, options.anchorPointRadius);
+        let newSegment: LineSegment = new LineSegment(anchorPoint, this.tail, lineSegmentType, options);
         if (this.tail == null) {
           this.tail = newSegment;
           this.head = newSegment;
