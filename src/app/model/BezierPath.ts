@@ -68,15 +68,17 @@ export default class BezierPath {
 
     // returns true if point deleted
     deletePoint(pos: Point): boolean {
-        var current: LineSegment = this.head;
-        while (current != null) {
-          if (current.pathPointIntersects(pos)) {
-            this.deleteLineSegment(current);
-            return true;
-          }
-          current = current.next;
+        let deleted: boolean = false;
+        let current: LineSegment = this.head;
+        while (!deleted && current != null) {
+            if (current.pathPointIntersects(pos)) {
+                this.deleteLineSegment(current);
+                deleted = true;
+            } else {
+                current = current.next;
+            }
         }
-        return false;
+        return deleted;
     }
 
     deleteLineSegment(segmentToDelete: LineSegment): void {
@@ -85,8 +87,9 @@ export default class BezierPath {
 
         // Middle case
         if (leftNeighbor && rightNeighbor) {
-          leftNeighbor.next = rightNeighbor;
-          rightNeighbor.prev = leftNeighbor
+            leftNeighbor.next = rightNeighbor;
+            rightNeighbor.ctrlPt1 = segmentToDelete.ctrlPt1;
+            rightNeighbor.prev = leftNeighbor;
         }
         // HEAD CASE
         else if (!leftNeighbor) {
@@ -109,6 +112,15 @@ export default class BezierPath {
         }
         length--;
     }
+
+    recalcuateControlPoints(): void {
+        var current: LineSegment = this.head;
+        while (current != null) {
+          current.updateControlPointAngles();
+          current = current.next;
+        }
+    }
+
 
     clearSelected() {
         this.selectedSegment = null;
@@ -163,7 +175,6 @@ export default class BezierPath {
                 let smallestAreaSegment: LineSegment = current;
 
                 let nextArea: number = this.getTriangleArea(current.prev, current, current.next);
-                console.log(nextArea);
                 if(nextArea < smallestArea) {
                     smallestArea = nextArea;
                     smallestAreaSegment = current;
@@ -189,7 +200,6 @@ export default class BezierPath {
     			c.pt.x * (a.pt.y - b.pt.y)
     		) / 2
     	);
-        console.log(`Triangle: a: (${a.pt.x}, ${a.pt.y}), b: (${b.pt.x}, ${b.pt.y}), c: (${c.pt.x}, ${c.pt.y}) - area: ${area}`);
         return area;
     }
 

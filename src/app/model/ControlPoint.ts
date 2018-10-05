@@ -65,6 +65,10 @@ export default class ControlPoint {
         return this._magnitude * Math.sin(this._angle);
     }
 
+    set owner(owner: LineSegment) {
+        this._owner = owner;
+    }
+
     computeMagnitudeAngleFromOffset(xDelta, yDelta) {
         this._magnitude = Math.sqrt(Math.pow(xDelta, 2) + Math.pow(yDelta, 2));
         var tryAngle = Math.atan(yDelta / xDelta);
@@ -129,5 +133,9 @@ export default class ControlPoint {
         this.drawSquare(ctx, endPt, pointStrokeStyle);
         // endPt.drawSquare(ctx);
         ctx.restore();
+    }
+
+    dispose(): void {
+        this._owner = undefined;
     }
 }

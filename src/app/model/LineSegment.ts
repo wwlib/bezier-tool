@@ -10,8 +10,6 @@ export enum LineSegmentType {
 export default class LineSegment {
 
     public pt: Point; // Path point.
-    public ctrlPt1: ControlPoint; // Control point 1.
-    public ctrlPt2: ControlPoint; // Control point 2.
     public next: LineSegment; // Next LineSegment in path
     public prev: LineSegment; // Previous LineSegment in path
     public selectedPoint: Point | ControlPoint; // Specific point on the LineSegment that is selected.
@@ -19,6 +17,8 @@ export default class LineSegment {
     public time: number;
     public controlPointsActive: boolean;
 
+    private _ctrlPt1: ControlPoint; // Control point 1.
+    private _ctrlPt2: ControlPoint; // Control point 2.
     private _controlPointMagnitude: number = 20;
 
 
@@ -29,33 +29,58 @@ export default class LineSegment {
         this.time = time || new Date().getTime();
         this.controlPointsActive = false;
 
+        this.updateControlPointAngles();
+    }
+
+    updateControlPointAngles(): void {
         if (this.prev) {
 
             // Make initial line straight and with controls of length 15.
             var slope = this.pt.computeSlope(this.prev.pt);
             var angle = Math.atan(slope);
-            var ctrlPt1Angle = angle;
-            var ctrlPt2Angle = angle + Math.PI;
+            var _ctrlPt1Angle = angle;
+            var _ctrlPt2Angle = angle + Math.PI;
 
-            if (this.prev.pt.x > this.pt.x) {
-                ctrlPt1Angle = angle + Math.PI;
-                ctrlPt2Angle = angle;
+            if (this.prev.pt.x >= this.pt.x) {
+                _ctrlPt1Angle = angle + Math.PI;
+                _ctrlPt2Angle = angle;
             }
 
-            this.ctrlPt1 = new ControlPoint(ctrlPt1Angle, this._controlPointMagnitude, this, true);
-            this.ctrlPt2 = new ControlPoint(ctrlPt2Angle, this._controlPointMagnitude, this, false);
+            if (this._ctrlPt1) this._ctrlPt1.dispose();
+            if (this._ctrlPt2) this._ctrlPt2.dispose();
+
+            this._ctrlPt1 = new ControlPoint(_ctrlPt1Angle, this._controlPointMagnitude, this, true);
+            this._ctrlPt2 = new ControlPoint(_ctrlPt2Angle, this._controlPointMagnitude, this, false);
         }
     }
 
-    drawCurve(ctx, startPt, endPt, ctrlPt1, ctrlPt2) {
-        // ctx.save();
+    get ctrlPt1(): ControlPoint {
+        return this._ctrlPt1;
+    }
+
+    set ctrlPt1(ctrlPoint: ControlPoint) {
+        this._ctrlPt1.dispose();
+        this._ctrlPt1 = ctrlPoint;
+        this._ctrlPt1.owner = this;
+    }
+
+    get ctrlPt2(): ControlPoint {
+        return this._ctrlPt2;
+    }
+
+    set ctrlPt2(ctrlPoint: ControlPoint) {
+        this._ctrlPt2.dispose();
+        this._ctrlPt2 = ctrlPoint;
+        this._ctrlPt2.owner = this;
+    }
+
+    drawCurve(ctx, startPt, endPt, _ctrlPt1, _ctrlPt2) {
         ctx.fillStyle = 'grey';
         ctx.strokeStyle = 'magenta'; //'darkgrey';
         ctx.beginPath();
         ctx.moveTo(startPt.x, startPt.y);
-        ctx.bezierCurveTo(ctrlPt1.x, ctrlPt1.y, ctrlPt2.x, ctrlPt2.y, endPt.x, endPt.y);
+        ctx.bezierCurveTo(_ctrlPt1.x, _ctrlPt1.y, _ctrlPt2.x, _ctrlPt2.y, endPt.x, endPt.y);
         ctx.stroke();
-        // ctx.restore();
     }
 
     draw(ctx: CanvasRenderingContext2D, options?: any) {
@@ -68,17 +93,17 @@ export default class LineSegment {
         }
         // Draw control points if we have them
         if (!hideControlPoints) {
-            if (this.prev && this.prev.controlPointsActive && this.ctrlPt1) {
-                let ctrlPt1StrokeStyle: string = this.prev.type == LineSegmentType.SMOOTH ? 'magenta' : 'red';
-                this.ctrlPt1.draw(ctx, ctrlPt1StrokeStyle);
+            if (this.prev && this.prev.controlPointsActive && this._ctrlPt1) {
+                let _ctrlPt1StrokeStyle: string = this.prev.type == LineSegmentType.SMOOTH ? 'magenta' : 'red';
+                this._ctrlPt1.draw(ctx, _ctrlPt1StrokeStyle);
             }
-            if (this.controlPointsActive && this.ctrlPt2) {
-                this.ctrlPt2.draw(ctx, strokeStyle);
+            if (this.controlPointsActive && this._ctrlPt2) {
+                this._ctrlPt2.draw(ctx, strokeStyle);
             }
         }
         // If there are at least two points, draw curve.
         if (this.prev) {
-            this.drawCurve(ctx, this.prev.pt, this.pt, this.ctrlPt1, this.ctrlPt2);
+            this.drawCurve(ctx, this.prev.pt, this.pt, this._ctrlPt1, this._ctrlPt2);
         }
 
     }
@@ -87,30 +112,30 @@ export default class LineSegment {
         if (!this.prev)
             return '  ctx.moveTo(' + Math.round(this.pt.x) + ' + xoff, ' + Math.round(this.pt.y) + ' + yoff);';
         else {
-            var ctrlPt1x = 0;
-            var ctrlPt1y = 0;
-            var ctrlPt2x = 0;
+            var _ctrlPt1x = 0;
+            var _ctrlPt1y = 0;
+            var _ctrlPt2x = 0;
             var ctlrPt2y = 0;
             var x = 0;
             var y = 0;
 
-            if (this.ctrlPt1) {
-                ctrlPt1x = Math.round(this.ctrlPt1.x);
-                ctrlPt1y = Math.round(this.ctrlPt1.y);
+            if (this._ctrlPt1) {
+                _ctrlPt1x = Math.round(this._ctrlPt1.x);
+                _ctrlPt1y = Math.round(this._ctrlPt1.y);
             }
 
-            if (this.ctrlPt2) {
-                ctrlPt2x = Math.round(this.ctrlPt2.x);
-                ctlrPt2y = Math.round(this.ctrlPt2.y);
+            if (this._ctrlPt2) {
+                _ctrlPt2x = Math.round(this._ctrlPt2.x);
+                ctlrPt2y = Math.round(this._ctrlPt2.y);
             }
             if (this.pt) {
                 x = Math.round(this.pt.x);
                 y = Math.round(this.pt.y);
             }
 
-            return '  ctx.bezierCurveTo(' + ctrlPt1x + ' + xoff, ' +
-                ctrlPt1y + ' + yoff, ' +
-                ctrlPt2x + ' + xoff, ' +
+            return '  ctx.bezierCurveTo(' + _ctrlPt1x + ' + xoff, ' +
+                _ctrlPt1y + ' + yoff, ' +
+                _ctrlPt2x + ' + xoff, ' +
                 ctlrPt2y + ' + yoff, ' +
                 x + ' + xoff, ' +
                 y + ' + yoff);';
@@ -121,14 +146,14 @@ export default class LineSegment {
         options = options || {};
         let hideAnchorPoints: boolean = options.hideAnchorPoints;
         let hideControlPoints: boolean = options.hideControlPoints;
-        if (!hideAnchorPoints && this.pathPointIntersects(pos)) {
+        if (!hideControlPoints && this.controlPointsActive && this.next && this.next._ctrlPt1 && this.next._ctrlPt1.contains(pos)) {
+            this.selectedPoint = this.next._ctrlPt1;
+            return true;
+        } else if (!hideControlPoints && this.controlPointsActive && this._ctrlPt2 && this._ctrlPt2.contains(pos)) {
+            this.selectedPoint = this._ctrlPt2;
+            return true;
+        } else if (!hideAnchorPoints && this.pathPointIntersects(pos)) {
             this.selectedPoint = this.pt;
-            return true;
-        } else if (!hideControlPoints && this.controlPointsActive && this.next && this.next.ctrlPt1 && this.next.ctrlPt1.contains(pos)) {
-            this.selectedPoint = this.next.ctrlPt1;
-            return true;
-        } else if (!hideControlPoints && this.controlPointsActive && this.ctrlPt2 && this.ctrlPt2.contains(pos)) {
-            this.selectedPoint = this.ctrlPt2;
             return true;
         }
         return false;
@@ -144,24 +169,19 @@ export default class LineSegment {
     };
 
     getVertices(): any[] {
-        // return ([{ x: this.pt.x, y: this.pt.y }]);
         return this.interpolateVertices();
     }
 
     interpolateVertices(divisions: number = 10): any[] {
         let vertices: any[] = [];
-        if (this.prev && this.ctrlPt1 && this.ctrlPt2) {
+        if (this.prev && this._ctrlPt1 && this._ctrlPt2) {
             vertices.push({ x: this.prev.pt.x, y: this.prev.pt.y }); // previous point
             for (let i: number = 1; i <= divisions; i++) {
                 let t: number = i / divisions;
                 let vector2: Vector2 = this.CalculateCubicBezierPoint(t,
-                    // controlPoints [nodeIndex].position,
-                    // controlPoints [nodeIndex + 1].position,
-                    // controlPoints [nodeIndex + 2].position,
-                    // controlPoints [nodeIndex + 3].position
                     new Vector2(this.prev.pt.asArray()),
-                    new Vector2(this.ctrlPt1.asArray()),
-                    new Vector2(this.ctrlPt2.asArray()),
+                    new Vector2(this._ctrlPt1.asArray()),
+                    new Vector2(this._ctrlPt2.asArray()),
                     new Vector2(this.pt.asArray())
                 );
                 vertices.push({x: vector2[0], y: vector2[1]});
