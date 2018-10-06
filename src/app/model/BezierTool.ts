@@ -86,7 +86,7 @@ export default class BezierTool {
         this.gCanvas = document.getElementById('bezierCanvas') as HTMLCanvasElement;
         this.gCtx = this.gCanvas.getContext('2d');
         this.gCtx.imageSmoothingEnabled = false;
-        this.gCtx.translate(0.5, 0.5);
+        // this.gCtx.translate(0.5, 0.5);
         this.HEIGHT = this.gCanvas.height;
         this.WIDTH = this.gCanvas.width;
 
@@ -98,7 +98,7 @@ export default class BezierTool {
         this.gBackCanvas.width = this.WIDTH;
         this.gBackCtx = this.gBackCanvas.getContext('2d');
         this.gBackCtx.imageSmoothingEnabled = false;
-        this.gBackCtx.translate(0.5, 0.5);
+        // this.gBackCtx.translate(0.5, 0.5);
 
         if (this._iOSDevice) {
             this.gCanvas.addEventListener('touchstart', this._touchstartHandler, {passive: false});
@@ -264,18 +264,18 @@ export default class BezierTool {
 
     // Modified from http://diveintohtml5.org/examples/halma.js
     getMousePosition(e: any) {
-        var x;
-        var y;
+        var x = 0;
+        var y = 0;
         if (e.pageX != undefined && e.pageY != undefined) {
             x = e.pageX;
             y = e.pageY;
         }
-        else {
-            x = e.clientX + document.body.scrollLeft + document.documentElement.scrollLeft;
-            y = e.clientY + document.body.scrollTop + document.documentElement.scrollTop;
-        }
-        x -= this.gCanvas.offsetLeft;
-        y -= this.gCanvas.offsetTop;
+        // else {
+        //     x = e.clientX + document.body.scrollLeft + document.documentElement.scrollLeft;
+        //     y = e.clientY + document.body.scrollTop + document.documentElement.scrollTop;
+        // }
+        x = x - this.gCanvas.offsetLeft - 3;
+        y = y - this.gCanvas.offsetTop - 3;
 
         return new Point(x, y);
     }
