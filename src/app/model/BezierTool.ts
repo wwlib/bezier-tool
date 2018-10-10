@@ -140,7 +140,7 @@ export default class BezierTool {
             this.setMode(Mode.Drawing);
         }, false);
 
-        this.setMode(Mode.Adding);
+        this.setMode(Mode.Selecting);
 
         var lockButton: HTMLInputElement = document.getElementById('lockControl') as HTMLInputElement;
         lockButton.addEventListener("click", () => {
@@ -184,7 +184,7 @@ export default class BezierTool {
             var doDelete = confirm('Clear all points?');
             if (doDelete) {
                 this.gBezierPath = null;
-                this.setMode(Mode.Adding);
+                this.setMode(Mode.Selecting);
                 this.render();
                 this.renderImageProcessingCanvas();
             }
@@ -301,7 +301,6 @@ export default class BezierTool {
                 //
             } else {
                 this.gBezierPath.addPoint(pos, lineSegmentType, <LineSegmentOptions>this._options);
-                this._canvasTxr.redraw();
             }
         }
     }
@@ -315,7 +314,6 @@ export default class BezierTool {
                 this.gBezierPath.addPoint(pos, lineSegmentType, <LineSegmentOptions>this._options);
             }
         }
-        this.setMode(Mode.Drawing);
         this.gCanvas.addEventListener("mousemove", this._mouseMoveHandler, false);
     }
 
@@ -408,13 +406,11 @@ export default class BezierTool {
 
         if (this.mode == Mode.Dragging) {
             this.gBezierPath.updateSelected(pos);
-            this._canvasTxr.redraw();
         } else if (this.mode == Mode.Drawing) {
             let lineSegmentType = this._options.createSmoothLineSegments ? LineSegmentType.SMOOTH : LineSegmentType.CORNER;
             if (!this.gBezierPath.tail.pathPointIntersects(pos, this._options.minDrawPointSpacing)) {
                 this.gBezierPath.addPoint(pos, lineSegmentType, <LineSegmentOptions>this._options);
             }
-            this._canvasTxr.redraw();
         } else if (this.mode == Mode.Panning) {
             this._canvasTxr.handleMousemove(e); //mousemove(pos);
         }
@@ -473,6 +469,7 @@ export default class BezierTool {
     }
 
     render() {
+        this._canvasTxr.redraw();
         this.gCtx.clearRect(0, 0, this.WIDTH, this.HEIGHT);
         if (this.gBezierPath) {
             this.gBezierPath.draw(this.gBackCtx, {transform: this._drawingTransform, hideAnchorPoints: this._options.hideAnchorPoints, hideControlPoints: this._options.hideControlPoints});
