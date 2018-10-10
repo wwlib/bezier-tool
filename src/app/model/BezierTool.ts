@@ -1,13 +1,18 @@
 import BezierPath from './BezierPath';
 import Point, { PointShape } from './Point';
 import { LineSegmentType, LineSegmentOptions } from './LineSegment';
+import CanvasTransformer, { Coords } from './CanvasTransformer';
+import { Matrix4 } from 'math.gl';
+
+// const panzoom = require('pan-zoom');
 
 export enum Mode {
     Adding,
     Selecting,
     Dragging,
     Removing,
-    Drawing
+    Drawing,
+    Panning
 }
 
 export type BezierToolOptions = {
@@ -53,6 +58,7 @@ export default class BezierTool {
     private _touchstartHandler: any = this.handleTouchStart.bind(this);
     private _touchmoveHandler: any = this.handleTouchMove.bind(this);
     private _touchendHandler: any = this.handleTouchEnd.bind(this);
+    private _scrollHandler: any = this.handleScroll.bind(this);
     private _iOSDevice = !!navigator.platform.match(/iPhone|iPod|iPad/);
 
     private _previousClickTime: number;
@@ -63,6 +69,8 @@ export default class BezierTool {
     private _removeButton: HTMLInputElement;
     private _drawButton: HTMLInputElement;
     private _options: BezierToolOptions;
+    private _canvasTxr: CanvasTransformer;
+    private _drawingTransform: Matrix4;
 
     constructor(options?: BezierToolOptions) {
         options = options || {};
@@ -86,19 +94,19 @@ export default class BezierTool {
         this.gCanvas = document.getElementById('bezierCanvas') as HTMLCanvasElement;
         this.gCtx = this.gCanvas.getContext('2d');
         this.gCtx.imageSmoothingEnabled = false;
-        // this.gCtx.translate(0.5, 0.5);
         this.HEIGHT = this.gCanvas.height;
         this.WIDTH = this.gCanvas.width;
-
-        this.bitmapCanvas = document.getElementById("bitmapCanvas") as HTMLCanvasElement;
-        this.bitmapCtx = this.bitmapCanvas.getContext("2d");
 
         this.gBackCanvas = document.createElement('canvas');
         this.gBackCanvas.height = this.HEIGHT;
         this.gBackCanvas.width = this.WIDTH;
         this.gBackCtx = this.gBackCanvas.getContext('2d');
         this.gBackCtx.imageSmoothingEnabled = false;
-        // this.gBackCtx.translate(0.5, 0.5);
+
+        this.bitmapCanvas = document.getElementById("bitmapCanvas") as HTMLCanvasElement;
+        this.bitmapCtx = this.bitmapCanvas.getContext("2d");
+
+        this._canvasTxr = new CanvasTransformer(this.gBackCanvas);
 
         if (this._iOSDevice) {
             this.gCanvas.addEventListener('touchstart', this._touchstartHandler, {passive: false});
@@ -107,6 +115,9 @@ export default class BezierTool {
             this.gCanvas.addEventListener("mousedown", this._mouseDownHandler, false);
             this.gCanvas.addEventListener("mouseup", this._mouseUpHandler, false);
         }
+
+        this.gCanvas.addEventListener('DOMMouseScroll',this.handleScroll.bind(this),false);
+        this.gCanvas.addEventListener('mousewheel',this.handleScroll.bind(this),false);
 
         this._selectButton = document.getElementById('selectMode') as HTMLInputElement;
         this._selectButton.addEventListener("click", () => {
@@ -172,8 +183,6 @@ export default class BezierTool {
             var doDelete = confirm('Clear all points?');
             if (doDelete) {
                 this.gBezierPath = null;
-                this.gBackCtx.clearRect(0, 0, this.WIDTH, this.HEIGHT);
-                this.gCtx.clearRect(0, 0, this.WIDTH, this.HEIGHT);
                 this.setMode(Mode.Adding);
                 this.render();
                 this.renderImageProcessingCanvas();
@@ -191,11 +200,11 @@ export default class BezierTool {
                 this.gBackgroundImg = null;
             };
             this.gBackgroundImg.onload = () => {
+                this._canvasTxr.image = this.gBackgroundImg; //DEBUG
                 this.render();
                 this.renderImageProcessingCanvas();
             };
             this.gBackgroundImg.src = input.value;
-            // input.value = '';
         }, false);
 
         BezierTool.ALT_KEY_DOWN = false;
@@ -231,6 +240,8 @@ export default class BezierTool {
                 this.gBezierPath.recalcuateControlPoints();
                 this.render();
                 break;
+            case 'c':
+                break;
 
         }
     }
@@ -262,7 +273,6 @@ export default class BezierTool {
         }
     }
 
-    // Modified from http://diveintohtml5.org/examples/halma.js
     getMousePosition(e: any) {
         var x = 0;
         var y = 0;
@@ -270,14 +280,11 @@ export default class BezierTool {
             x = e.pageX;
             y = e.pageY;
         }
-        // else {
-        //     x = e.clientX + document.body.scrollLeft + document.documentElement.scrollLeft;
-        //     y = e.clientY + document.body.scrollTop + document.documentElement.scrollTop;
-        // }
-        x = x - this.gCanvas.offsetLeft - 3;
+        x = x - this.gCanvas.offsetLeft - 3; // 3 is a magic number (corrects for border)
         y = y - this.gCanvas.offsetTop - 3;
-
-        return new Point(x, y);
+        let txPoint = this._canvasTxr.transformedPoint(x, y);
+        // console.log(`getMousePosition: (${x}, ${y}) -> (${txPoint.x}, ${txPoint.y})`);
+        return new Point(txPoint.x, txPoint.y);
     }
 
     handleDownAdd(pos: Point) {
@@ -312,7 +319,8 @@ export default class BezierTool {
     handleDownSelect(pos: Point) {
         let result: boolean = false;
         if (!this.gBezierPath) {
-            result = false;
+            this.setMode(Mode.Panning);
+            this.gCanvas.addEventListener("mousemove", this._mouseMoveHandler, false);
         } else {
             var selected = this.gBezierPath.selectPoint(pos, {hideAnchorPoints: this._options.hideAnchorPoints, hideControlPoints: this._options.hideControlPoints});
             if (selected) {
@@ -331,6 +339,8 @@ export default class BezierTool {
                 result = true;
             } else {
                 this.gBezierPath.deselectPoints();
+                this.setMode(Mode.Panning);
+                this.gCanvas.addEventListener("mousemove", this._mouseMoveHandler, false);
             }
         }
         return result;
@@ -349,6 +359,7 @@ export default class BezierTool {
 
     handleDown(e: any) {
         var pos = this.getMousePosition(e);
+        this._canvasTxr.handleMousedown(e);
         let doubleClickTime: number = new Date().getTime() - this._previousClickTime;
         if (doubleClickTime < 200) {
             this._doubleClick = true;
@@ -385,13 +396,18 @@ export default class BezierTool {
 
     handleMouseMove(e: any) {
         var pos = this.getMousePosition(e);
+
         if (this.mode == Mode.Dragging) {
             this.gBezierPath.updateSelected(pos);
+            this._canvasTxr.redraw();
         } else if (this.mode == Mode.Drawing) {
             let lineSegmentType = this._options.createSmoothLineSegments ? LineSegmentType.SMOOTH : LineSegmentType.CORNER;
             if (!this.gBezierPath.tail.pathPointIntersects(pos, this._options.minDrawPointSpacing)) {
                 this.gBezierPath.addPoint(pos, lineSegmentType, <LineSegmentOptions>this._options);
             }
+            this._canvasTxr.redraw();
+        } else if (this.mode == Mode.Panning) {
+            this._canvasTxr.handleMousemove(e); //mousemove(pos);
         }
         this.render();
     }
@@ -407,6 +423,7 @@ export default class BezierTool {
     handleUp(e: any) {
         this.gCanvas.removeEventListener("mousemove", this._mouseMoveHandler, false);
         this.gCanvas.removeEventListener('touchmove', this._touchmoveHandler, false);
+        this._canvasTxr.handleMouseup(e);
 
         if (this.mode == Mode.Dragging) {
             this.gBezierPath.clearSelected();
@@ -416,6 +433,8 @@ export default class BezierTool {
             this.gBezierPath.simplifyPath(this._options.simplifyPathTolerance);
             this.setMode(Mode.Selecting);
             this.render();
+        } else if (this.mode == Mode.Panning) {
+            this.setMode(Mode.Selecting);
         }
         this._doubleClick = false;
         this.renderImageProcessingCanvas();
@@ -426,15 +445,15 @@ export default class BezierTool {
         event.preventDefault();
     }
 
-    render() {
-        this.gBackCtx.clearRect(0, 0, this.WIDTH, this.HEIGHT);
-        this.gCtx.clearRect(0, 0, this.WIDTH, this.HEIGHT);
-        if (this.gBackgroundImg) {
-            this.gBackCtx.drawImage(this.gBackgroundImg, 0, 0, this.WIDTH, this.HEIGHT);
-        }
+    handleScroll(event: any): void {
+        this._canvasTxr.handleScroll(event);
+        this.render();
+    }
 
+    render() {
+        this.gCtx.clearRect(0, 0, this.WIDTH, this.HEIGHT);
         if (this.gBezierPath) {
-            this.gBezierPath.draw(this.gBackCtx, {hideAnchorPoints: this._options.hideAnchorPoints, hideControlPoints: this._options.hideControlPoints});
+            this.gBezierPath.draw(this.gBackCtx, {transform: this._drawingTransform, hideAnchorPoints: this._options.hideAnchorPoints, hideControlPoints: this._options.hideControlPoints});
             var codeBox = document.getElementById('putJS');
             if (codeBox) {
                 codeBox.innerHTML = this.gBezierPath.toJSString();
@@ -450,10 +469,8 @@ export default class BezierTool {
                 this.bitmapCtx.drawImage(this.gBackgroundImg, 0, 0, this.bitmapCanvas.width, this.bitmapCanvas.height);
             }
             var imgData: ImageData = this.bitmapCtx.getImageData(0, 0, this.bitmapCanvas.width, this.bitmapCanvas.height);
-            // console.log(`imgData length: ${imgData.data.length}, width: ${imgData.width}, height: ${imgData.height}`);
             let transparent: number = 0;
             let polygon: any = this.gBezierPath.getAnchorVertices();
-            // console.log(`  rendering polygon: vertex count: ${polygon.length}`);
 			let i: number = 0;
 			for (let y: number = 0; y < imgData.height; y++) {
 				for (let x: number = 0; x < imgData.width; x++) {

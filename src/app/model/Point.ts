@@ -1,6 +1,13 @@
+import { Vector2, Matrix4 } from 'math.gl';
+
 export enum PointShape {
     Square,
     Circle
+}
+
+export type PointCoords = {
+    x: number;
+    y: number;
 }
 
 export default class Point {
@@ -40,7 +47,17 @@ export default class Point {
         this._yVal = y;
     };
 
-    draw(ctx: CanvasRenderingContext2D, shape: PointShape, strokeStyle: string): void {
+    // This is a placeholder anticipating the need to draw control points un-scaled - on scaled drawings
+    tx(tx: Matrix4): PointCoords {
+        if (tx) {
+            let pt: Vector2 = tx.transformPoint([this.x, this.y]);
+        }
+        // noop for now
+        let coords: PointCoords = {x: this.x, y: this.y};
+        return coords
+    }
+
+    draw(ctx: CanvasRenderingContext2D, shape: PointShape, strokeStyle: string, tx: Matrix4): void {
         console.log(`Point: draw: unimpemented.`);
     }
 

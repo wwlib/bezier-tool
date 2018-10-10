@@ -2,6 +2,7 @@ import Point, { PointShape } from './Point';
 import ControlPoint from './ControlPoint';
 import LineSegment, { LineSegmentType } from './LineSegment';
 import BezierTool from './BezierTool';
+import { Matrix4 } from 'math.gl';
 
 export type ControlHandleOptions = {
     controlPointShape: PointShape;
@@ -65,6 +66,11 @@ export default class ControlHandle {
         return this.origin().y + this.yDelta;
     }
 
+    get pt(): Point {
+        let pt: Point = new Point(this.x, this.y);
+        return pt;
+    }
+
     get xDelta() {
         return this._magnitude * Math.cos(this._angle);
     }
@@ -115,17 +121,17 @@ export default class ControlHandle {
         return this.asControlPoint().offsetFrom(pt);
     }
 
-    draw(ctx: CanvasRenderingContext2D, shape: PointShape, strokeStyle: string = 'magenta') {
+    draw(ctx: CanvasRenderingContext2D, shape: PointShape, strokeStyle: string = 'magenta', tx: Matrix4) {
         ctx.save();
         ctx.fillStyle = 'white';
         ctx.strokeStyle = strokeStyle;
         ctx.beginPath();
-        var startPt = this.origin();
-        var endPt = this.asControlPoint();
-        ctx.moveTo(startPt.x, startPt.y);
-        ctx.lineTo(endPt.x, endPt.y);
+        var startPt: Point = this.origin();
+        var endPt: ControlPoint = this.asControlPoint();
+        ctx.moveTo(startPt.tx(tx).x, startPt.tx(tx).y);
+        ctx.lineTo(endPt.tx(tx).x, endPt.tx(tx).y);
         ctx.stroke();
-        endPt.draw(ctx, shape, strokeStyle);
+        endPt.draw(ctx, shape, strokeStyle, tx);
         ctx.restore();
     }
 
