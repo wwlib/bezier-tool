@@ -31,7 +31,10 @@ export default class Application extends React.Component<ApplicationProps, Appli
     }
 
     layout(): any {
-        let layout =
+        let layout = <div>
+            <TopNav clickHandler={this.onTopNavClick.bind(this)} />
+        </div>;
+        /*
             <ReactBootstrap.Grid>
                 <ReactBootstrap.Row>
                     <ReactBootstrap.Col>
@@ -82,6 +85,7 @@ export default class Application extends React.Component<ApplicationProps, Appli
                     </ReactBootstrap.Col>
                 </ReactBootstrap.Row>
             </ReactBootstrap.Grid>;
+            */
         return layout;
     }
 

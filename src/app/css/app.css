@@ -35,6 +35,15 @@ textarea {
   width: 500px;
 }
 
+input[type=range] {
+    display: inline-block;
+}
+
+.slider {
+    max-width: 100px;
+    display: inline-block;
+}
+
 /***************************
 Top Navigation Bar
 ****************************/
