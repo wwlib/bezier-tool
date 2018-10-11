@@ -432,10 +432,6 @@ export default class BezierTool {
             let dz = dist - this._lastTouchDistance;
             this._lastTouchDistance = dist;
             // console.log(`_lastTouchDistance: ${this._lastTouchDistance}`);
-            var codeBox = document.getElementById('putJS');
-            if (codeBox) {
-                codeBox.innerHTML += `_lastTouchDistance: ${this._lastTouchDistance}, dz: ${dz}<br/>`;
-            }
             let evt = {wheelDelta: dz, preventDefault: function(){}};
             this.handleScroll(evt);
         }
@@ -464,10 +460,6 @@ export default class BezierTool {
 
     handleTouchEnd(event: any): void {
         this.handleUp(event);
-        var codeBox = document.getElementById('putJS');
-        if (codeBox) {
-            codeBox.innerHTML = ``;
-        }
         event.preventDefault();
     }
 
@@ -481,10 +473,10 @@ export default class BezierTool {
         this.gCtx.clearRect(0, 0, this.WIDTH, this.HEIGHT);
         if (this.gBezierPath) {
             this.gBezierPath.draw(this.gBackCtx, {transform: this._drawingTransform, hideAnchorPoints: this._options.hideAnchorPoints, hideControlPoints: this._options.hideControlPoints});
-            // var codeBox = document.getElementById('putJS');
-            // if (codeBox) {
-            //     codeBox.innerHTML = this.gBezierPath.toJSString();
-            // }
+            var codeBox = document.getElementById('putJS');
+            if (codeBox) {
+                codeBox.innerHTML = this.gBezierPath.toJSString();
+            }
         }
         this.gCtx.drawImage(this.gBackCanvas, 0, 0);
     }
