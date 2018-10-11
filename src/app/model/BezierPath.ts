@@ -149,17 +149,35 @@ export default class BezierPath {
         return myString.join('\n');
     }
 
-    getAnchorVertices(): any[] {
+    getVertices(): any[] {
         let vertices: any = [];
         var current: LineSegment = this.head;
         while (current != null) {
-            let currentTime: number = current.time = this.startTime;
+            // let currentTime: number = current.time - this.startTime;
             // let segment: any = {x: current.pt.x, y: current.pt.y, t: currentTime};
 
-            vertices.push(...current.getVertices());
+            vertices.push(...current.getVertices(this.startTime));
             current = current.next;
         }
         return vertices;
+    }
+
+    toJson(): any {
+        let json: any = {};
+        json.startTime = this.startTime;
+        json.vertices = this.getVertices();
+        return json;
+    }
+
+    toSvg(): string {
+        let svg: string = `<svg width="500" height="375" xmlns="http://www.w3.org/2000/svg">\n`;
+        var current: LineSegment = this.head;
+        while (current != null) {
+            svg += current.toSvg() + '\n';
+            current = current.next;
+        }
+        svg += `</svg>`;
+        return svg;
     }
 
     // Visvalingam's algorithm

@@ -38,7 +38,7 @@ export default class Point {
         return [this._xVal, this._yVal];
     }
 
-    json(): any {
+    toJson(): any {
         return {x: this._xVal, y: this._yVal};
     }
 

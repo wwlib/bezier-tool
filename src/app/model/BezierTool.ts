@@ -475,7 +475,7 @@ export default class BezierTool {
             this.gBezierPath.draw(this.gBackCtx, {transform: this._drawingTransform, hideAnchorPoints: this._options.hideAnchorPoints, hideControlPoints: this._options.hideControlPoints});
             var codeBox = document.getElementById('putJS');
             if (codeBox) {
-                codeBox.innerHTML = this.gBezierPath.toJSString();
+                codeBox.innerHTML = this.gBezierPath.toSvg(); //JSON.stringify(this.gBezierPath.toJson(), null, 2); //is.gBezierPath.toJSString();
             }
         }
         this.gCtx.drawImage(this.gBackCanvas, 0, 0);
@@ -489,7 +489,7 @@ export default class BezierTool {
             }
             var imgData: ImageData = this.bitmapCtx.getImageData(0, 0, this.bitmapCanvas.width, this.bitmapCanvas.height);
             let transparent: number = 0;
-            let polygon: any = this.gBezierPath.getAnchorVertices();
+            let polygon: any = this.gBezierPath.getVertices();
 			let i: number = 0;
 			for (let y: number = 0; y < imgData.height; y++) {
 				for (let x: number = 0; x < imgData.width; x++) {

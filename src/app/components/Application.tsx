@@ -49,6 +49,7 @@ export default class Application extends React.Component<ApplicationProps, Appli
                                 <ReactBootstrap.Button>Add</ReactBootstrap.Button>
                                 <ReactBootstrap.Button>Rmv</ReactBootstrap.Button>
                                 <ReactBootstrap.Button>Drw</ReactBootstrap.Button>
+                                <ReactBootstrap.Button>Mod</ReactBootstrap.Button>
                                 <ReactBootstrap.DropdownButton title="Smoothing" id="bg-nested-dropdown">
                                     <ReactBootstrap.MenuItem eventKey="0">0</ReactBootstrap.MenuItem>
                                     <ReactBootstrap.MenuItem eventKey="1">10</ReactBootstrap.MenuItem>

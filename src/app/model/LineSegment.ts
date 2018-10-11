@@ -88,6 +88,24 @@ export default class LineSegment {
         this._ctrlHandle2.owner = this;
     }
 
+    toSvg(): string {
+        let svg: string = '';
+        if (this.prev) {
+            let Mx: number = this.prev.pt.x;
+            let My: number = this.prev.pt.y;
+            let x1: number = this._ctrlHandle1.x;
+            let y1: number = this._ctrlHandle1.y;
+            let x2: number = this._ctrlHandle2.x;
+            let y2: number = this._ctrlHandle2.y;
+            let x3: number = this.pt.x;
+            let y3: number = this.pt.y;
+
+            svg = `<path d="M${Mx} ${My} C ${x1} ${y1}, ${x2} ${y2}, ${x3} ${y3}" stroke="black" fill="transparent"/>`;
+        }
+
+        return svg;
+    }
+
     drawCurve(ctx: CanvasRenderingContext2D, startPt: AnchorPoint, endPt: AnchorPoint, _ctrlHandle1: ControlHandle, _ctrlHandle2: ControlHandle, tx: Matrix4) {
         ctx.fillStyle = 'white';
         ctx.strokeStyle = this._options.lineColor; //'magenta'; //'darkgrey';
@@ -183,15 +201,18 @@ export default class LineSegment {
         this.selectedPoint.translate(dist.xDelta, dist.yDelta);
     };
 
-    getVertices(): any[] {
-        return this.interpolateVertices();
+    getVertices(pathStartTime: number = 0): any[] {
+        return this.interpolateVertices(10, pathStartTime);
     }
 
-    interpolateVertices(divisions: number = 10): any[] {
+    interpolateVertices(divisions: number = 10, pathStartTime: number = 0): any[] {
         let vertices: any[] = [];
         if (this.prev && this._ctrlHandle1 && this._ctrlHandle2) {
-            vertices.push({ x: this.prev.pt.x, y: this.prev.pt.y }); // previous point
-            for (let i: number = 1; i <= divisions; i++) {
+            let startTime: number = this.prev.time - pathStartTime;
+            let duration: number = this.time - this.prev.time;
+            vertices.push({ x: this.prev.pt.x, y: this.prev.pt.y, t: startTime }); // previous point
+
+            for (let i: number = 1; i < divisions; i++) {
                 let t: number = i / divisions;
                 let vector2: Vector2 = this.CalculateCubicBezierPoint(t,
                     new Vector2(this.prev.pt.asArray()),
@@ -199,7 +220,7 @@ export default class LineSegment {
                     new Vector2(this._ctrlHandle2.asArray()),
                     new Vector2(this.pt.asArray())
                 );
-                vertices.push({x: vector2[0], y: vector2[1]});
+                vertices.push({x: vector2[0], y: vector2[1], t: Math.floor(startTime + duration * t)});
             }
         }
         return vertices;
