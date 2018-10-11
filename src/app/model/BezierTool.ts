@@ -2,7 +2,7 @@ import BezierPath from './BezierPath';
 import Point, { PointShape } from './Point';
 import { LineSegmentType, LineSegmentOptions } from './LineSegment';
 import CanvasTransformer, { Coords } from './CanvasTransformer';
-import { Matrix4 } from 'math.gl';
+import { Vector2, Matrix4 } from 'math.gl';
 
 // const panzoom = require('pan-zoom');
 
@@ -71,7 +71,7 @@ export default class BezierTool {
     private _drawButton: HTMLInputElement;
     private _options: BezierToolOptions;
     private _canvasTxr: CanvasTransformer;
-    private _drawingTransform: Matrix4;
+    private _drawingTransform: Matrix4 = undefined; // not currently used
 
     constructor(options?: BezierToolOptions) {
         options = options || {};
@@ -117,8 +117,8 @@ export default class BezierTool {
             this.gCanvas.addEventListener("mouseup", this._mouseUpHandler, false);
         }
 
-        this.gCanvas.addEventListener('DOMMouseScroll',this.handleScroll.bind(this),false);
-        this.gCanvas.addEventListener('mousewheel',this.handleScroll.bind(this),false);
+        this.gCanvas.addEventListener('DOMMouseScroll',this._scrollHandler,false);
+        this.gCanvas.addEventListener('mousewheel',this._scrollHandler,false);
 
         this._selectButton = document.getElementById('selectMode') as HTMLInputElement;
         this._selectButton.addEventListener("click", () => {
@@ -395,8 +395,10 @@ export default class BezierTool {
         } else if (event.targetTouches.length == 2) {
             let t1 = event.targetTouches[0];
             let t2 = event.targetTouches[1];
-            let diff = Math.abs(t1.pageX - t2.pageX);
-            this._lastTouchDistance = diff;
+            let v1 = new Vector2([t1.pageX ,t1.pageY]);
+            let v2 = new Vector2([t2.pageX ,t2.pageY]);
+            let dist = v1.distanceTo(v2);
+            this._lastTouchDistance = dist;
         }
         event.preventDefault();
     }
@@ -424,13 +426,15 @@ export default class BezierTool {
         } else if (event.targetTouches.length == 2) {
             let t1 = event.targetTouches[0];
             let t2 = event.targetTouches[1];
-            let diff = Math.abs(t1.pageX - t2.pageX);
-            let dz = diff - this._lastTouchDistance;
-            this._lastTouchDistance = diff;
+            let v1 = new Vector2([t1.pageX ,t1.pageY]);
+            let v2 = new Vector2([t2.pageX ,t2.pageY]);
+            let dist = v1.distanceTo(v2);
+            let dz = dist - this._lastTouchDistance;
+            this._lastTouchDistance = dist;
             // console.log(`_lastTouchDistance: ${this._lastTouchDistance}`);
             var codeBox = document.getElementById('putJS');
             if (codeBox) {
-                codeBox.innerHTML = `_lastTouchDistance: ${this._lastTouchDistance}, dz: ${dz}`;
+                codeBox.innerHTML += `_lastTouchDistance: ${this._lastTouchDistance}, dz: ${dz}<br/>`;
             }
             let evt = {wheelDelta: dz, preventDefault: function(){}};
             this.handleScroll(evt);
@@ -460,6 +464,10 @@ export default class BezierTool {
 
     handleTouchEnd(event: any): void {
         this.handleUp(event);
+        var codeBox = document.getElementById('putJS');
+        if (codeBox) {
+            codeBox.innerHTML = ``;
+        }
         event.preventDefault();
     }
 
