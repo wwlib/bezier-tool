@@ -456,6 +456,16 @@ export default class BezierTool {
         }
         this._doubleClick = false;
         this.renderImageProcessingCanvas();
+        if (this.gBezierPath) {
+            var jsonBox = document.getElementById('putJSON');
+            if (jsonBox) {
+                jsonBox.innerHTML = JSON.stringify(this.gBezierPath.toJson(), null, 2); //is.gBezierPath.toJSString();
+            }
+            var svgBox = document.getElementById('putSVG');
+            if (svgBox) {
+                svgBox.innerHTML = this.gBezierPath.toSvg(); //JSON.stringify(this.gBezierPath.toJson(), null, 2); //is.gBezierPath.toJSString();
+            }
+        }
     }
 
     handleTouchEnd(event: any): void {
@@ -473,10 +483,6 @@ export default class BezierTool {
         this.gCtx.clearRect(0, 0, this.WIDTH, this.HEIGHT);
         if (this.gBezierPath) {
             this.gBezierPath.draw(this.gBackCtx, {transform: this._drawingTransform, hideAnchorPoints: this._options.hideAnchorPoints, hideControlPoints: this._options.hideControlPoints});
-            var codeBox = document.getElementById('putJS');
-            if (codeBox) {
-                codeBox.innerHTML = this.gBezierPath.toSvg(); //JSON.stringify(this.gBezierPath.toJson(), null, 2); //is.gBezierPath.toJSString();
-            }
         }
         this.gCtx.drawImage(this.gBackCanvas, 0, 0);
     }

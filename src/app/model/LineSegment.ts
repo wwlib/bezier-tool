@@ -75,7 +75,9 @@ export default class LineSegment {
     set ctrlPt1(ctrlPoint: ControlHandle) {
         this._ctrlHandle1.dispose();
         this._ctrlHandle1 = ctrlPoint;
-        this._ctrlHandle1.owner = this;
+        if (this._ctrlHandle1) {
+            this._ctrlHandle1.owner = this;
+        }
     }
 
     get ctrlPt2(): ControlHandle {
@@ -85,7 +87,9 @@ export default class LineSegment {
     set ctrlPt2(ctrlPoint: ControlHandle) {
         this._ctrlHandle2.dispose();
         this._ctrlHandle2 = ctrlPoint;
-        this._ctrlHandle2.owner = this;
+        if (this._ctrlHandle2) {
+            this._ctrlHandle2.owner = this;
+        }
     }
 
     toSvg(): string {

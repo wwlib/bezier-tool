@@ -166,11 +166,16 @@ export default class BezierPath {
         let json: any = {};
         json.startTime = this.startTime;
         json.vertices = this.getVertices();
+        json.vertexCount = json.vertices.length;
+        json.width = 500; //TODO
+        json.height = 375; //TODO
+        json.originX = 0;
+        json.originY = 0;
         return json;
     }
 
     toSvg(): string {
-        let svg: string = `<svg width="500" height="375" xmlns="http://www.w3.org/2000/svg">\n`;
+        let svg: string = `<svg width="500" height="375" xmlns="http://www.w3.org/2000/svg">\n`; //TODO
         var current: LineSegment = this.head;
         while (current != null) {
             svg += current.toSvg() + '\n';
