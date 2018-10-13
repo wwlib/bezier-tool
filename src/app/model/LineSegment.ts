@@ -230,6 +230,16 @@ export default class LineSegment {
         return vertices;
     }
 
+    getCubicBezierAtTime(t: number): Vector2 {
+        let vector2: Vector2 = this.CalculateCubicBezierPoint(t,
+            new Vector2(this.prev.pt.asArray()),
+            new Vector2(this._ctrlHandle1.asArray()),
+            new Vector2(this._ctrlHandle2.asArray()),
+            new Vector2(this.pt.asArray())
+        );
+        return vector2;
+    }
+
     CalculateCubicBezierPoint(t: number, p0: Vector2, p1: Vector2, p2: Vector2, p3: Vector2): Vector2 {
         let u = 1 - t;
         let tt = t * t;

@@ -1,6 +1,6 @@
 import BezierPath from './BezierPath';
 import Point, { PointShape } from './Point';
-import { LineSegmentType, LineSegmentOptions } from './LineSegment';
+import LineSegment, { LineSegmentType, LineSegmentOptions } from './LineSegment';
 import CanvasTransformer, { Coords } from './CanvasTransformer';
 import { Vector2, Matrix4 } from 'math.gl';
 
@@ -72,6 +72,8 @@ export default class BezierTool {
     private _options: BezierToolOptions;
     private _canvasTxr: CanvasTransformer;
     private _drawingTransform: Matrix4 = undefined; // not currently used
+
+    private _audioContext: AudioContext = new AudioContext();
 
     constructor(options?: BezierToolOptions) {
         options = options || {};
@@ -243,9 +245,54 @@ export default class BezierTool {
                 this.render();
                 break;
             case 'c':
+                console.log(`playSound`);
+                if (this.gBezierPath && this.gBezierPath.head && this.gBezierPath.head.next) {
+                    var segment: LineSegment = this.gBezierPath.head.next;
+                    var arr = [], volume = 0.2, seconds = 0.25, tone = 882
+                    var maxValue = 0;
+                    var startValue = segment.getCubicBezierAtTime(0)[1];
+                    for (var i = 0; i < this._audioContext.sampleRate * seconds; i++) {
+                        var sampleNumber = i;
+                        var cycleSamples =  this._audioContext.sampleRate / tone
+                        var elapsedTime = sampleNumber/cycleSamples;
+                        var cycleNumber = Math.floor(elapsedTime);
+                        var t = elapsedTime - cycleNumber;
+                        var vec2: Vector2 = segment.getCubicBezierAtTime(t);
+                        var value = vec2[1] - startValue;
+                        maxValue = Math.max(maxValue, value);
+                        arr[i] = value * volume
+                    }
+                    for (var i = 0; i < this._audioContext.sampleRate * seconds; i++) {
+                        arr[i] = arr[i]/maxValue;
+                    }
+                    // for (var i = 0; i < this._audioContext.sampleRate * seconds; i++) {
+                    //     arr[i] = this.sineWaveAt(i, tone) * volume
+                    // }
+
+                    this.playSound(arr)
+                }
                 break;
 
         }
+    }
+
+    sineWaveAt(sampleNumber, tone) {
+        var cycleSamples = this._audioContext.sampleRate / tone
+        var elapsedTime = sampleNumber/cycleSamples;
+        var cycleNumber = Math.floor(elapsedTime);
+        var t = elapsedTime - cycleNumber;
+        return Math.sin(t * Math.PI*2);
+    }
+
+    playSound(arr) {
+        var buf = new Float32Array(arr.length)
+        for (var i = 0; i < arr.length; i++) buf[i] = arr[i]
+        var buffer = this._audioContext.createBuffer(1, buf.length, this._audioContext.sampleRate)
+        buffer.copyToChannel(buf, 0)
+        var source = this._audioContext.createBufferSource();
+        source.buffer = buffer;
+        source.connect(this._audioContext.destination);
+        source.start(0);
     }
 
     handleKeyUp(event: any): void {
