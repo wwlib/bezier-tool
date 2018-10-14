@@ -4,6 +4,8 @@ import LineSegment, { LineSegmentType, LineSegmentOptions } from './LineSegment'
 import CanvasTransformer, { Coords } from './CanvasTransformer';
 import { Vector2, Matrix4 } from 'math.gl';
 
+const toWav = require('audiobuffer-to-wav');
+
 // const panzoom = require('pan-zoom');
 
 export enum Mode {
@@ -74,6 +76,9 @@ export default class BezierTool {
     private _drawingTransform: Matrix4 = undefined; // not currently used
 
     private _audioContext: AudioContext = new AudioContext();
+    private _cycleArray: any[];
+    private _soundArray: any[];
+    private _soundCycleSamples: number;
 
     constructor(options?: BezierToolOptions) {
         options = options || {};
@@ -246,33 +251,57 @@ export default class BezierTool {
                 break;
             case 'c':
                 console.log(`playSound`);
-                if (this.gBezierPath && this.gBezierPath.head && this.gBezierPath.head.next) {
-                    var segment: LineSegment = this.gBezierPath.head.next;
-                    var arr = [], volume = 0.2, seconds = 0.25, tone = 882
-                    var maxValue = 0;
-                    var startValue = segment.getCubicBezierAtTime(0)[1];
-                    for (var i = 0; i < this._audioContext.sampleRate * seconds; i++) {
-                        var sampleNumber = i;
-                        var cycleSamples =  this._audioContext.sampleRate / tone
-                        var elapsedTime = sampleNumber/cycleSamples;
-                        var cycleNumber = Math.floor(elapsedTime);
-                        var t = elapsedTime - cycleNumber;
-                        var vec2: Vector2 = segment.getCubicBezierAtTime(t);
-                        var value = vec2[1] - startValue;
-                        maxValue = Math.max(maxValue, value);
-                        arr[i] = value * volume
-                    }
-                    for (var i = 0; i < this._audioContext.sampleRate * seconds; i++) {
-                        arr[i] = arr[i]/maxValue;
-                    }
-                    // for (var i = 0; i < this._audioContext.sampleRate * seconds; i++) {
-                    //     arr[i] = this.sineWaveAt(i, tone) * volume
-                    // }
-
-                    this.playSound(arr)
-                }
+                this.renderSound();
+                this.playSound();
                 break;
 
+        }
+    }
+
+    generateSoundData() {
+        if (this.gBezierPath && this.gBezierPath.head && this.gBezierPath.head.next) {
+            var baseline = 375/2;
+            this.gBezierPath.head.pt.set(0, baseline);
+            this.gBezierPath.head.next.pt.set(375, baseline);
+            var segment: LineSegment = this.gBezierPath.head.next;
+            var volume = 1.0, seconds = 0.25, tone = 882;
+            var startX = segment.getCubicBezierAtTime(0)[0];
+            var startY = segment.getCubicBezierAtTime(0)[1];
+
+            var totalSamples = this._audioContext.sampleRate * seconds;
+            var cycleSamples = this._audioContext.sampleRate / tone;
+            let xScale = cycleSamples/375;
+            console.log(`generateSoundData: `, startX, startY, this._audioContext.sampleRate, totalSamples, cycleSamples);
+            // for (var i = 0; i < totalSamples; i++) {
+            //     var sampleNumber = i;
+            //     var elapsedTime = sampleNumber/cycleSamples;
+            //     var cycleNumber = Math.floor(elapsedTime);
+            //     var t = elapsedTime - cycleNumber;
+            //     var vec2: Vector2 = segment.getCubicBezierAtTime(t);
+            //     var value = vec2[1]; //(vec2[1] - startY);
+            //     // maxValue = Math.max(maxValue, value);
+            //     this._soundArray [i] = { y: value * volume, x: vec2[0], t: t }
+            // }
+            let timeSteps = cycleSamples * 3;
+            this._cycleArray = [];
+            // for (var i = 0; i < cycleSamples; i++) {
+            //     this._cycleArray[i] = baseline; //{ y: baseline, x: i, t: 0 };
+            // }
+            for (let step = 0; step<timeSteps; step++) {
+                let t = step/timeSteps;
+                var vec2: Vector2 = segment.getCubicBezierAtTime(t);
+                let x = vec2[0] * xScale;
+                let i = Math.floor(x) //+ (cycle * cycleSamples);
+                let y = vec2[1];
+                this._cycleArray [i] = y; //{ y: y, x: i, t: t }
+                // console.log(i, y, t);
+            }
+            this._soundArray = [];
+            for (var j = 0; j < totalSamples; j++) {
+                let cycleSample = j % cycleSamples;
+                this._soundArray[j] = -(this._cycleArray[cycleSample] - baseline) / baseline;
+            }
+            this._soundCycleSamples = cycleSamples;
         }
     }
 
@@ -284,15 +313,55 @@ export default class BezierTool {
         return Math.sin(t * Math.PI*2);
     }
 
-    playSound(arr) {
-        var buf = new Float32Array(arr.length)
-        for (var i = 0; i < arr.length; i++) buf[i] = arr[i]
+    playSound() {
+        console.log(`playSound: `, this._soundArray.length, this._soundArray)
+        var buf = new Float32Array(this._soundArray.length);
+        for (var i = 0; i < this._soundArray.length; i++) buf[i] = this._soundArray[i];
         var buffer = this._audioContext.createBuffer(1, buf.length, this._audioContext.sampleRate)
         buffer.copyToChannel(buf, 0)
         var source = this._audioContext.createBufferSource();
         source.buffer = buffer;
         source.connect(this._audioContext.destination);
         source.start(0);
+        console.log(buffer);
+        let wav = toWav(buffer);
+        //var chunk = new Uint8Array(wav);
+        console.log(wav);
+        // fs.appendFile('bezierSound.wav', new Buffer(chunk), function (err) {
+        //     console.log(err);
+        // });
+
+        var element = document.createElement('a');
+        element.setAttribute('href', 'data:audio/wav;base64,' + Buffer.from(wav).toString('base64'));
+        element.setAttribute('download', 'bezierSound.wav');
+        element.style.display = 'none';
+        document.body.appendChild(element);
+        element.click();
+        document.body.removeChild(element);
+    }
+
+    renderSound() {
+        this.generateSoundData();
+        console.log(`renderSound: `, this._soundCycleSamples);
+        this.bitmapCtx.clearRect(0, 0, this.bitmapCanvas.width, this.bitmapCanvas.height);
+        this.bitmapCtx.fillStyle = 'lightgrey';
+        this.bitmapCtx.strokeStyle = 'black';
+        let baseline = 375 /2;
+        let xSpacing = 375 / this._soundCycleSamples;
+        this.bitmapCtx.moveTo(0, baseline);
+        this.bitmapCtx.beginPath();
+        this.bitmapCtx.moveTo(0, baseline);
+        let len = this._soundCycleSamples; //arr.length;
+        let xScale = 375 / len;
+        for (let i=0; i<len; i++) {
+            let value = this._cycleArray[i];
+            let y = value;// + baseline;
+            let x = i * xSpacing; //this._cycleArray[i].x; //i * xScale;
+            // console.log(x, y, this._cycleArray[i].t);
+            this.bitmapCtx.lineTo(x, y);
+            this.bitmapCtx.arc(x, y, 3, 0, 2*Math.PI);
+        }
+        this.bitmapCtx.stroke();
     }
 
     handleKeyUp(event: any): void {
@@ -502,7 +571,8 @@ export default class BezierTool {
             this.setMode(Mode.Selecting, 'handleUp, Panning');
         }
         this._doubleClick = false;
-        this.renderImageProcessingCanvas();
+        //this.renderImageProcessingCanvas();
+        this.renderSound();
         if (this.gBezierPath) {
             var jsonBox = document.getElementById('putJSON');
             if (jsonBox) {

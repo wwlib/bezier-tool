@@ -231,12 +231,13 @@ export default class LineSegment {
     }
 
     getCubicBezierAtTime(t: number): Vector2 {
-        let vector2: Vector2 = this.CalculateCubicBezierPoint(t,
-            new Vector2(this.prev.pt.asArray()),
-            new Vector2(this._ctrlHandle1.asArray()),
-            new Vector2(this._ctrlHandle2.asArray()),
-            new Vector2(this.pt.asArray())
-        );
+        let pt1 = new Vector2(this.prev.pt.asArray());
+        let pt2 = new Vector2(this._ctrlHandle1.asArray());
+        let pt3 = new Vector2(this._ctrlHandle2.asArray());
+        let pt4 = new Vector2(this.pt.asArray());
+        // console.log(pt1, pt2, pt3, pt4);
+
+        let vector2: Vector2 = this.CalculateCubicBezierPoint(t, pt1, pt2, pt3, pt4);
         return vector2;
     }
 
