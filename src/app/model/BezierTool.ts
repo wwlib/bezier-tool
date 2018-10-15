@@ -250,7 +250,15 @@ export default class BezierTool {
                 this.render();
                 break;
             case 'c':
-                console.log(`playSound`);
+                var baseline = 375/2;
+                this.gBezierPath.head.pt.set(0, baseline);
+                this.gBezierPath.tail.pt.set(375, baseline);
+                this.render();
+                break;
+            case 'p':
+                var baseline = 375/2;
+                this.gBezierPath.head.pt.set(0, baseline);
+                this.gBezierPath.tail.pt.set(375, baseline);
                 this.renderSound();
                 this.playSound();
                 break;
@@ -261,41 +269,33 @@ export default class BezierTool {
     generateSoundData() {
         if (this.gBezierPath && this.gBezierPath.head && this.gBezierPath.head.next) {
             var baseline = 375/2;
-            this.gBezierPath.head.pt.set(0, baseline);
-            this.gBezierPath.head.next.pt.set(375, baseline);
-            var segment: LineSegment = this.gBezierPath.head.next;
-            var volume = 1.0, seconds = 0.25, tone = 882;
-            var startX = segment.getCubicBezierAtTime(0)[0];
-            var startY = segment.getCubicBezierAtTime(0)[1];
+            // this.gBezierPath.head.pt.set(0, baseline);
+            // this.gBezierPath.tail.pt.set(375, baseline);
+
+            var volume = 1.0, seconds = 0.25, tone = 441;
+            // var startX = segment.getCubicBezierAtTime(0)[0];
+            // var startY = segment.getCubicBezierAtTime(0)[1];
 
             var totalSamples = this._audioContext.sampleRate * seconds;
             var cycleSamples = this._audioContext.sampleRate / tone;
             let xScale = cycleSamples/375;
-            console.log(`generateSoundData: `, startX, startY, this._audioContext.sampleRate, totalSamples, cycleSamples);
-            // for (var i = 0; i < totalSamples; i++) {
-            //     var sampleNumber = i;
-            //     var elapsedTime = sampleNumber/cycleSamples;
-            //     var cycleNumber = Math.floor(elapsedTime);
-            //     var t = elapsedTime - cycleNumber;
-            //     var vec2: Vector2 = segment.getCubicBezierAtTime(t);
-            //     var value = vec2[1]; //(vec2[1] - startY);
-            //     // maxValue = Math.max(maxValue, value);
-            //     this._soundArray [i] = { y: value * volume, x: vec2[0], t: t }
-            // }
+            // console.log(`generateSoundData: `, startX, startY, this._audioContext.sampleRate, totalSamples, cycleSamples);
+
             let timeSteps = cycleSamples * 3;
             this._cycleArray = [];
-            // for (var i = 0; i < cycleSamples; i++) {
-            //     this._cycleArray[i] = baseline; //{ y: baseline, x: i, t: 0 };
-            // }
-            for (let step = 0; step<timeSteps; step++) {
-                let t = step/timeSteps;
-                var vec2: Vector2 = segment.getCubicBezierAtTime(t);
-                let x = vec2[0] * xScale;
-                let i = Math.floor(x) //+ (cycle * cycleSamples);
-                let y = vec2[1];
-                this._cycleArray [i] = y; //{ y: y, x: i, t: t }
-                // console.log(i, y, t);
+            var segment: LineSegment = this.gBezierPath.head.next;
+            while (segment != null) {
+                for (let step = 0; step<timeSteps; step++) {
+                    let t = step/timeSteps;
+                    var vec2: Vector2 = segment.getCubicBezierAtTime(t);
+                    let x = vec2[0] * xScale;
+                    let i = Math.floor(x);
+                    let y = vec2[1];
+                    this._cycleArray [i] = y;
+                }
+                segment = segment.next;
             }
+
             this._soundArray = [];
             for (var j = 0; j < totalSamples; j++) {
                 let cycleSample = j % cycleSamples;
