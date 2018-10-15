@@ -1,4 +1,5 @@
-import { Vector2, Matrix4 } from 'math.gl';
+// import { Vector2, Matrix4 } from 'math.gl';
+import CanvasTransformer from './CanvasTransformer';
 
 export enum PointShape {
     Square,
@@ -48,16 +49,18 @@ export default class Point {
     };
 
     // This is a placeholder anticipating the need to draw control points un-scaled - on scaled drawings
-    tx(tx: Matrix4): PointCoords {
-        if (tx) {
-            let pt: Vector2 = tx.transformPoint([this.x, this.y]);
+    tx(txr: CanvasTransformer): PointCoords {
+        let coords: PointCoords = {x: this.x, y: this.y};
+        if (txr) {
+            let pt = txr.applyTransform(this.x, this.y);
+            coords = {x: pt.x, y: pt.y};
         }
         // noop for now
-        let coords: PointCoords = {x: this.x, y: this.y};
+
         return coords
     }
 
-    draw(ctx: CanvasRenderingContext2D, shape: PointShape, strokeStyle: string, tx: Matrix4): void {
+    draw(ctx: CanvasRenderingContext2D, shape: PointShape, strokeStyle: string, txr: CanvasTransformer): void {
         console.log(`Point: draw: unimpemented.`);
     }
 

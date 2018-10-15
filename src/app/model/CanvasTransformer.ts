@@ -27,6 +27,8 @@ export default class CanvasTransformer {
     public dragStart;
     public dragged;
     public scaleFactor;
+    public minScale: number;
+    public maxScale: number;
 
     constructor(canvas: HTMLCanvasElement) {
         this.canvas = canvas;
@@ -38,6 +40,8 @@ export default class CanvasTransformer {
         this.lastX = canvas.width / 2
         this.lastY = canvas.height / 2;
         this.scaleFactor = 1.1;
+        this.minScale = 1.0;
+        this.maxScale = 5.0;
         // this.setupEvents(); //DEBUG
     }
 
@@ -68,6 +72,11 @@ export default class CanvasTransformer {
     getTransform(): SVGMatrix {
         return this._xform;
     };
+
+    reset(): void {
+        this.ctx.setTransform(1, 0, 0, 1, 0, 0);
+        this.redraw();
+    }
 
     save(): void {
         this._savedTransforms.push(this._xform.translate(0, 0));
@@ -118,14 +127,24 @@ export default class CanvasTransformer {
         return pt.matrixTransform(this._xform.inverse());
     }
 
+    applyTransform(x: number, y: number): SVGPoint {
+        let pt: SVGPoint = this._svg.createSVGPoint();
+        pt.x = x;
+        pt.y = y;
+        return pt.matrixTransform(this._xform);
+    }
+
     // events
 
-    zoom(clicks) {
+    zoom(delta) {
         var pt = this.transformedPoint(this.lastX, this.lastY);
-        this.translate(pt.x,pt.y);
-        var factor = Math.pow(this.scaleFactor, clicks);
-        this.scale(factor,factor);
-        this.translate(-pt.x,-pt.y);
+        var factor = Math.pow(this.scaleFactor, delta);
+        let scale = this._xform.a;
+        if (scale * factor >= this.minScale && scale * factor <= this.maxScale) {
+            this.translate(pt.x,pt.y);
+            this.scale(factor,factor);
+            this.translate(-pt.x,-pt.y);
+        }
         this.redraw();
     }
 

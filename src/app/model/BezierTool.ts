@@ -71,7 +71,6 @@ export default class BezierTool {
     private _drawButton: HTMLInputElement;
     private _options: BezierToolOptions;
     private _canvasTxr: CanvasTransformer;
-    private _drawingTransform: Matrix4 = undefined; // not currently used
 
     constructor(options?: BezierToolOptions) {
         options = options || {};
@@ -85,8 +84,8 @@ export default class BezierTool {
             controlPointShape: PointShape.Square,
             anchorPointColor: 'blue',
             controlPointColor: 'magenta',
-            anchorPointRadius: 3,
-            controlPointRadius: 3,
+            anchorPointRadius: 4,
+            controlPointRadius: 4,
             lineColor: 'magenta',
             lineWeight: 1,
         };
@@ -388,6 +387,7 @@ export default class BezierTool {
     }
 
     handleTouchStart(event: any): void {
+        event.preventDefault();
         this.gCanvas.addEventListener('touchmove', this._touchmoveHandler, {passive: false});
         if (event.targetTouches.length == 1) {
             let touch = event.targetTouches[0];
@@ -395,12 +395,19 @@ export default class BezierTool {
         } else if (event.targetTouches.length == 2) {
             let t1 = event.targetTouches[0];
             let t2 = event.targetTouches[1];
-            let v1 = new Vector2([t1.pageX ,t1.pageY]);
-            let v2 = new Vector2([t2.pageX ,t2.pageY]);
-            let dist = v1.distanceTo(v2);
+            let vA = new Vector2([t1.pageX ,t1.pageY]);
+            let vB = new Vector2([t2.pageX ,t2.pageY]);
+            let dist = vA.distanceTo(vB);
+            let vAB = vB.clone();
+            vAB.subtract(vA);
+            vAB.scale(.5);
+            let vMidpoint = vA.clone();
+            vMidpoint.add(vAB);
             this._lastTouchDistance = dist;
+            // let evt = {pageX: vMidpoint.x, pageY: vMidpoint.y, wheelDelta: 0, preventDefault: function(){}};
+            // this._canvasTxr.handleMousemove(evt);
         }
-        event.preventDefault();
+
     }
 
     handleMouseMove(e: any) {
@@ -420,22 +427,26 @@ export default class BezierTool {
     }
 
     handleTouchMove(event: any): void {
+        event.preventDefault();
         if (event.targetTouches.length == 1) {
           var touch = event.targetTouches[0];
           this.handleMouseMove(touch);
         } else if (event.targetTouches.length == 2) {
             let t1 = event.targetTouches[0];
             let t2 = event.targetTouches[1];
-            let v1 = new Vector2([t1.pageX ,t1.pageY]);
-            let v2 = new Vector2([t2.pageX ,t2.pageY]);
-            let dist = v1.distanceTo(v2);
+            let vA = new Vector2([t1.pageX ,t1.pageY]);
+            let vB = new Vector2([t2.pageX ,t2.pageY]);
+            let dist = vA.distanceTo(vB);
+            let vAB = vB.clone();
+            vAB.subtract(vA);
+            vAB.scale(.5);
+            let vMidpoint = vA.clone();
+            vMidpoint.add(vAB);
             let dz = dist - this._lastTouchDistance;
             this._lastTouchDistance = dist;
-            // console.log(`_lastTouchDistance: ${this._lastTouchDistance}`);
-            let evt = {wheelDelta: dz, preventDefault: function(){}};
+            let evt = {pageX: vMidpoint.x, pageY: vMidpoint.y, wheelDelta: dz, preventDefault: function(){}};
             this.handleScroll(evt);
         }
-        event.preventDefault();
     }
 
     handleUp(e: any) {
@@ -481,10 +492,13 @@ export default class BezierTool {
     render() {
         this._canvasTxr.redraw();
         this.gCtx.clearRect(0, 0, this.WIDTH, this.HEIGHT);
-        if (this.gBezierPath) {
-            this.gBezierPath.draw(this.gBackCtx, {transform: this._drawingTransform, hideAnchorPoints: this._options.hideAnchorPoints, hideControlPoints: this._options.hideControlPoints});
-        }
+        // if (this.gBezierPath) {
+        //     this.gBezierPath.draw(this.gBackCtx, {transformer: undefined, hideAnchorPoints: this._options.hideAnchorPoints, hideControlPoints: this._options.hideControlPoints});
+        // }
         this.gCtx.drawImage(this.gBackCanvas, 0, 0);
+        if (this.gBezierPath) {
+            this.gBezierPath.draw(this.gCtx, {transformer: this._canvasTxr, hideAnchorPoints: this._options.hideAnchorPoints, hideControlPoints: this._options.hideControlPoints});
+        }
     }
 
     renderImageProcessingCanvas(): void {

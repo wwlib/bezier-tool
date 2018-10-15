@@ -1,7 +1,8 @@
 import Point, { PointShape } from './Point';
 import ControlHandle, { ControlHandleOptions } from './ControlHandle';
 import AnchorPoint from './AnchorPoint';
-import { Vector2, Matrix4 } from 'math.gl';
+import { Vector2 } from 'math.gl';
+import CanvasTransformer from './CanvasTransformer';
 
 export enum LineSegmentType {
     SMOOTH,
@@ -110,37 +111,37 @@ export default class LineSegment {
         return svg;
     }
 
-    drawCurve(ctx: CanvasRenderingContext2D, startPt: AnchorPoint, endPt: AnchorPoint, _ctrlHandle1: ControlHandle, _ctrlHandle2: ControlHandle, tx: Matrix4) {
+    drawCurve(ctx: CanvasRenderingContext2D, startPt: AnchorPoint, endPt: AnchorPoint, _ctrlHandle1: ControlHandle, _ctrlHandle2: ControlHandle, txr: CanvasTransformer) {
         ctx.fillStyle = 'white';
         ctx.strokeStyle = this._options.lineColor; //'magenta'; //'darkgrey';
         ctx.beginPath();
-        ctx.moveTo(startPt.tx(tx).x, startPt.tx(tx).y);
-        ctx.bezierCurveTo(_ctrlHandle1.pt.tx(tx).x, _ctrlHandle1.pt.tx(tx).y, _ctrlHandle2.pt.tx(tx).x, _ctrlHandle2.pt.tx(tx).y, endPt.tx(tx).x, endPt.tx(tx).y);
+        ctx.moveTo(startPt.tx(txr).x, startPt.tx(txr).y);
+        ctx.bezierCurveTo(_ctrlHandle1.pt.tx(txr).x, _ctrlHandle1.pt.tx(txr).y, _ctrlHandle2.pt.tx(txr).x, _ctrlHandle2.pt.tx(txr).y, endPt.tx(txr).x, endPt.tx(txr).y);
         ctx.stroke();
     }
 
     draw(ctx: CanvasRenderingContext2D, options?: any) {
         options = options || {};
-        let transform: Matrix4 = options.transform;
+        let transformer: CanvasTransformer = options.transformer;
         let hideAnchorPoints: boolean = options.hideAnchorPoints;
         let hideControlPoints: boolean = options.hideControlPoints;
 
         // If there are at least two points, draw curve.
         if (this.prev) {
-            this.drawCurve(ctx, this.prev.pt, this.pt, this._ctrlHandle1, this._ctrlHandle2, transform);
+            this.drawCurve(ctx, this.prev.pt, this.pt, this._ctrlHandle1, this._ctrlHandle2, transformer);
         }
 
         if (!hideAnchorPoints) {
-            this.pt.draw(ctx, this._options.anchorPointShape, this._options.anchorPointColor, transform);
+            this.pt.draw(ctx, this._options.anchorPointShape, this._options.anchorPointColor, transformer);
         }
 
         // Draw control points if we have them
         if (!hideControlPoints) {
             if (this.prev && this.prev.controlPointsActive && this._ctrlHandle1) {
-                this._ctrlHandle1.draw(ctx, this._options.controlPointShape, this._options.controlPointColor, transform);
+                this._ctrlHandle1.draw(ctx, this._options.controlPointShape, this._options.controlPointColor, transformer);
             }
             if (this.controlPointsActive && this._ctrlHandle2) {
-                this._ctrlHandle2.draw(ctx, this._options.controlPointShape, this._options.controlPointColor, transform);
+                this._ctrlHandle2.draw(ctx, this._options.controlPointShape, this._options.controlPointColor, transformer);
             }
         }
     }
