@@ -11,64 +11,17 @@
 
 
     <!-- Latest compiled and minified CSS -->
-    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" integrity="sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u" crossorigin="anonymous">
+    <!-- <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" integrity="sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u" crossorigin="anonymous"> -->
     <!-- Optional theme -->
-    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap-theme.min.css" integrity="sha384-rHyoN1iRsVXV4nD0JutlnGaslCJuC7uwjduW9SVrLvRYooPp2bWYgmgJQIXwl/Sp" crossorigin="anonymous">
-
-    <link rel="stylesheet" href="http://netdna.bootstrapcdn.com/font-awesome/4.0.3/css/font-awesome.min.css">
+    <!-- <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap-theme.min.css" integrity="sha384-rHyoN1iRsVXV4nD0JutlnGaslCJuC7uwjduW9SVrLvRYooPp2bWYgmgJQIXwl/Sp" crossorigin="anonymous"> -->
+    <link rel="stylesheet" href="css/bootstrap-darkly.css">
+    <!-- <link rel="stylesheet" href="http://netdna.bootstrapcdn.com/font-awesome/4.0.3/css/font-awesome.min.css"> -->
 </head>
 
 <body>
     <div id="root"></div>
 
     <div id="container">
-        <fieldset>
-            <legend>Path Edit Modes</legend>
-            <label><input style="margin-right: 6px;" type="radio" name="mode" id="selectMode" />select</label>
-            <label><input style="margin-right: 6px;" type="radio" name="mode" id="addMode" checked/>add</label>
-            <label><input style="margin-right: 6px;" type="radio" name="mode" id="removeMode" />remove</label>
-            <label><input style="margin-right: 6px;" type="radio" name="mode" id="drawMode" />draw</label>
-            <label><input style="margin-right: 6px;" type="checkbox" name="lockControl" id="lockControl"/>lock control points</label>
-            <label><input style="margin-right: 6px;" type="checkbox" name="hideAnchorPoints" id="hideAnchorPoints"/>hide anchor points</label>
-            <label><input style="margin-right: 6px;" type="checkbox" name="hideControlPoints" id="hideControlPoints"/>hide control points</label>
-            <button id="clear" type="button">Clear all points</button>
-            <br/>
-            (Double-click = toggle CORNER mode, Meta-click = force SMOOTH mode.)
-            <br/>
-            <label class="slider" for="smoothingSlider">Smoothing</label>
-            <output class="slider" style="margin: 6px;" for="smoothingSlider" id="smoothingValue"></output>
-            <input class="slider" type="range" list="smoothing-steps" id="smoothingSlider" name="smoothing" min="0" max="200" />
-
-            <datalist id="smoothing-steps">
-              <option value="0" label="0">
-              <option value="20" label="20">
-              <option value="40" label="40">
-              <option value="60" label="60">
-              <option value="80" label="80">
-              <option value="100" label="100">
-              <option value="120" label="120">
-              <option value="140" label="140">
-              <option value="160" label="160">
-              <option value="180" label="180">
-              <option value="200" label="200">
-            </datalist>
-            <label class="slider" for="spacingSlider">Spacing</label>
-            <output class="slider" style="margin: 6px;" for="spacingSlider" id="spacingValue"></output>
-            <input class="slider" type="range" list="spacing-steps" id="spacingSlider" name="spacing" min="5" max="100" />
-            <datalist id="spacing-steps">
-              <option value="5" label="20">
-              <option value="10" label="20">
-              <option value="20" label="20">
-              <option value="30" label="30">
-              <option value="40" label="40">
-              <option value="50" label="50">
-              <option value="60" label="60">
-              <option value="70" label="70">
-              <option value="80" label="80">
-              <option value="90" label="90">
-              <option value="100" label="100">
-            </datalist>
-      </fieldset>
             <div class="col">
                 <canvas id="bezierCanvas" width="500" height="375"></canvas>
                 <canvas id="bitmapCanvas" width="500" height="375"></canvas>

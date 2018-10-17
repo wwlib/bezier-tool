@@ -17,8 +17,6 @@ let model: Model = new Model();
     );
 // });
 
-const bezierTool = new BezierTool();
-
 // if (module.hot) {
 //     module.hot.accept();
 // }

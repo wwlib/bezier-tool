@@ -113,8 +113,8 @@ export default class ControlHandle {
             neighbor.setAngle(this._angle + Math.PI);
     }
 
-    contains(pt) {
-        return this.asControlPoint().contains(pt);
+    contains(pt: Point, radius?: number) {
+        return this.asControlPoint().contains(pt, radius);
     }
 
     offsetFrom(pt) {

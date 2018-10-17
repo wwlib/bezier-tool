@@ -48,15 +48,12 @@ export default class Point {
         this._yVal = y;
     };
 
-    // This is a placeholder anticipating the need to draw control points un-scaled - on scaled drawings
     tx(txr: CanvasTransformer): PointCoords {
         let coords: PointCoords = {x: this.x, y: this.y};
         if (txr) {
             let pt = txr.applyTransform(this.x, this.y);
             coords = {x: pt.x, y: pt.y};
         }
-        // noop for now
-
         return coords
     }
 

@@ -136,10 +136,14 @@ export default class CanvasTransformer {
 
     // events
 
+    getScale(): number {
+        return this._xform.a;
+    }
+
     zoom(delta) {
         var pt = this.transformedPoint(this.lastX, this.lastY);
         var factor = Math.pow(this.scaleFactor, delta);
-        let scale = this._xform.a;
+        let scale = this.getScale(); //this._xform.a;
         if (scale * factor >= this.minScale && scale * factor <= this.maxScale) {
             this.translate(pt.x,pt.y);
             this.scale(factor,factor);

@@ -1,25 +1,45 @@
 import * as React from "react";
 import * as ReactBootstrap from "react-bootstrap";
 import TopNav from './TopNav';
+import Toolbar from './Toolbar';
 import Model from '../model/Model';
+import { BezierToolOptions, Mode } from '../model/BezierTool';
 
 const prettyjson = require('prettyjson');
 
 export interface ApplicationProps { model: Model }
 export interface ApplicationState {
-    log: string
+    log: string,
+    toolbarOptions: BezierToolOptions,
+    toolbarMode: Mode
 }
 
 export default class Application extends React.Component<ApplicationProps, ApplicationState> {
 
+    private _modeChangeHandler: any = this.onModeChange.bind(this);
+
     componentWillMount() {
         console.log(`Application: componentWillMount: `);
         this.setState({
-            log: ''
+            log: '',
+            toolbarOptions: this.props.model.bezierTool.options,
+            toolbarMode: this.props.model.bezierTool.mode
         });
     }
 
     componentDidMount() {
+        this.props.model.bezierTool.addListener('modeChange', this._modeChangeHandler);
+    }
+
+    onModeChange() {
+        console.log(`Application: onModeChange:`);
+        this.setState({
+            toolbarMode: this.props.model.bezierTool.mode
+        });
+    }
+
+    componentWillUnmount() {
+        this.props.model.bezierTool.removeListener('modeChange', this._modeChangeHandler);
     }
 
     onTopNavClick(event: any): void {
@@ -30,12 +50,95 @@ export default class Application extends React.Component<ApplicationProps, Appli
         }
     }
 
+    onToolbarClick(event: any, type: string = ''): void {
+        let nativeEvent: any = event.nativeEvent;
+        // console.log(nativeEvent, nativeEvent.target);
+        let name = nativeEvent.target.name;
+        let id = nativeEvent.target.id;
+        let parentName = nativeEvent.target.parentElement.name;
+        let parentId = nativeEvent.target.parentElement.id
+        // console.log(`name: ${name}, id: ${id}, parentName: ${parentName}, parentId: ${parentId}`);
+        if (type === "tool") {
+            let tool = id || parentId;
+            // console.log(`Tool: ${tool}`);
+            let mode = Mode.Selecting;
+            switch (tool) {
+                case 'pan':
+                    console.log(`SetMode: Panning`);
+                    mode = Mode.Panning;
+                    break;
+                case 'select':
+                    console.log(`SetMode: Selecting`);
+                    mode = Mode.Selecting;
+                    break;
+                case 'add':
+                    console.log(`SetMode: Adding`);
+                    mode = Mode.Adding;
+                    break;
+                case 'draw':
+                    console.log(`SetMode: Drawing`);
+                    mode = Mode.Drawing;
+                    break;
+                case 'edit':
+                    console.log(`SetMode: Editing`);
+                    mode = Mode.Editing;
+                    break;
+                case 'delete':
+                    console.log(`SetMode: Removing`);
+                    mode = Mode.Removing;
+                    break;
+                case 'insert':
+                    console.log(`SetMode: Inserting`);
+                    mode = Mode.Inserting;
+                    break;
+                case 'modify':
+                    console.log(`SetMode: Modifying`);
+                    mode = Mode.Modifying;
+                    break;
+            }
+            this.props.model.bezierTool.setMode(mode);
+            this.setState({
+                toolbarMode: this.props.model.bezierTool.mode
+            });
+        } else if (name === "smoothing") {
+            let value = Number(nativeEvent.target.text);
+            console.log(`Smoothing: ${value}`);
+            this.props.model.bezierTool.setSmoothing(value);
+        } else if (name === "spacing") {
+            let value = Number(nativeEvent.target.text);
+            console.log(`Spacing: ${value}`);
+            this.props.model.bezierTool.setSpacing(value);
+        } else if (id === "toggles") {
+            let firstChild = nativeEvent.target.firstChild;
+            // console.log("toggles", firstChild);
+            if (firstChild) {
+                let value = Number(firstChild.value);
+                let checked = !firstChild.checked; //checking state before being toggled
+                switch (value) {
+                    case 1:
+                        console.log(`LockControls: ${checked}`);
+                        this.props.model.bezierTool.lockControls(checked);
+                        break;
+                    case 2:
+                        console.log(`HideAnchors: ${checked}`);
+                        this.props.model.bezierTool.hideAnchors(checked);
+                        break;
+                    case 3:
+                        console.log(`HideControls: ${checked}`);
+                        this.props.model.bezierTool.hideControls(checked);
+                        break;
+                }
+            }
+        } else if (name === "clear") {
+            this.props.model.bezierTool.clearAllPoints();
+            console.log(`Clear all Points`);
+        }
+
+    }
+
     layout(): any {
-        let layout = <div>
-            <TopNav clickHandler={this.onTopNavClick.bind(this)} />
-        </div>;
-        /*
-            <ReactBootstrap.Grid>
+        let layout =
+        <ReactBootstrap.Grid>
                 <ReactBootstrap.Row>
                     <ReactBootstrap.Col>
                         <TopNav clickHandler={this.onTopNavClick.bind(this)} />
@@ -43,50 +146,11 @@ export default class Application extends React.Component<ApplicationProps, Appli
                 </ReactBootstrap.Row>
                 <ReactBootstrap.Row>
                     <ReactBootstrap.Col>
-                        <ReactBootstrap.ButtonToolbar>
-                            <ReactBootstrap.ButtonGroup>
-                                <ReactBootstrap.Button>Sel</ReactBootstrap.Button>
-                                <ReactBootstrap.Button>Add</ReactBootstrap.Button>
-                                <ReactBootstrap.Button>Rmv</ReactBootstrap.Button>
-                                <ReactBootstrap.Button>Drw</ReactBootstrap.Button>
-                                <ReactBootstrap.Button>Mod</ReactBootstrap.Button>
-                                <ReactBootstrap.DropdownButton title="Smoothing" id="bg-nested-dropdown">
-                                    <ReactBootstrap.MenuItem eventKey="0">0</ReactBootstrap.MenuItem>
-                                    <ReactBootstrap.MenuItem eventKey="1">10</ReactBootstrap.MenuItem>
-                                    <ReactBootstrap.MenuItem eventKey="2">20</ReactBootstrap.MenuItem>
-                                    <ReactBootstrap.MenuItem eventKey="3">30</ReactBootstrap.MenuItem>
-                                    <ReactBootstrap.MenuItem eventKey="4">40</ReactBootstrap.MenuItem>
-                                    <ReactBootstrap.MenuItem eventKey="5">50</ReactBootstrap.MenuItem>
-                                    <ReactBootstrap.MenuItem eventKey="6" active>60</ReactBootstrap.MenuItem>
-                                    <ReactBootstrap.MenuItem eventKey="7">70</ReactBootstrap.MenuItem>
-                                    <ReactBootstrap.MenuItem eventKey="8">80</ReactBootstrap.MenuItem>
-                                    <ReactBootstrap.MenuItem eventKey="9">90</ReactBootstrap.MenuItem>
-                                    <ReactBootstrap.MenuItem eventKey="10">100</ReactBootstrap.MenuItem>
-                                </ReactBootstrap.DropdownButton>
-                                <ReactBootstrap.DropdownButton title="Spacing" id="bg-nested-dropdown">
-                                    <ReactBootstrap.MenuItem eventKey="0">0</ReactBootstrap.MenuItem>
-                                    <ReactBootstrap.MenuItem eventKey="1" active>10</ReactBootstrap.MenuItem>
-                                    <ReactBootstrap.MenuItem eventKey="2">20</ReactBootstrap.MenuItem>
-                                    <ReactBootstrap.MenuItem eventKey="3">30</ReactBootstrap.MenuItem>
-                                    <ReactBootstrap.MenuItem eventKey="4">40</ReactBootstrap.MenuItem>
-                                    <ReactBootstrap.MenuItem eventKey="5">50</ReactBootstrap.MenuItem>
-                                    <ReactBootstrap.MenuItem eventKey="6">60</ReactBootstrap.MenuItem>
-                                    <ReactBootstrap.MenuItem eventKey="7">70</ReactBootstrap.MenuItem>
-                                    <ReactBootstrap.MenuItem eventKey="8">80</ReactBootstrap.MenuItem>
-                                    <ReactBootstrap.MenuItem eventKey="9">90</ReactBootstrap.MenuItem>
-                                    <ReactBootstrap.MenuItem eventKey="10">100</ReactBootstrap.MenuItem>
-                                </ReactBootstrap.DropdownButton>
-                            </ReactBootstrap.ButtonGroup>
-                            <ReactBootstrap.ToggleButtonGroup type="checkbox" defaultValue={[1]}>
-                                <ReactBootstrap.ToggleButton value={1}>Lock Controls</ReactBootstrap.ToggleButton>
-                                <ReactBootstrap.ToggleButton value={2}>Hide Anchors</ReactBootstrap.ToggleButton>
-                                <ReactBootstrap.ToggleButton value={3}>Hide Controls</ReactBootstrap.ToggleButton>
-                            </ReactBootstrap.ToggleButtonGroup>
-                        </ReactBootstrap.ButtonToolbar>
+                        <Toolbar clickHandler={this.onToolbarClick.bind(this)} options={this.props.model.bezierTool.options} mode={this.props.model.bezierTool.mode} />
                     </ReactBootstrap.Col>
                 </ReactBootstrap.Row>
             </ReactBootstrap.Grid>;
-            */
+
         return layout;
     }
 

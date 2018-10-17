@@ -1,3 +1,4 @@
+import { EventEmitter } from 'events';
 import BezierPath from './BezierPath';
 import Point, { PointShape } from './Point';
 import { LineSegmentType, LineSegmentOptions } from './LineSegment';
@@ -7,12 +8,15 @@ import { Vector2, Matrix4 } from 'math.gl';
 // const panzoom = require('pan-zoom');
 
 export enum Mode {
-    Adding,
+    Panning = 1,
     Selecting,
-    Dragging,
-    Removing,
+    Adding,
     Drawing,
-    Panning
+    Editing,
+    Removing,
+    Inserting,
+    Modifying,
+    Dragging,
 }
 
 export type BezierToolOptions = {
@@ -31,7 +35,7 @@ export type BezierToolOptions = {
     lineWeight?: number;
 }
 
-export default class BezierTool {
+export default class BezierTool extends EventEmitter {
 
     static ALT_KEY_DOWN: boolean;
     static META_KEY_DOWN: boolean;
@@ -73,6 +77,7 @@ export default class BezierTool {
     private _canvasTxr: CanvasTransformer;
 
     constructor(options?: BezierToolOptions) {
+        super();
         options = options || {};
         let defaultOptions = {
             createSmoothLineSegments: false,
@@ -81,7 +86,7 @@ export default class BezierTool {
             simplifyPathTolerance: 60,
             minDrawPointSpacing: 10,
             anchorPointShape: PointShape.Square,
-            controlPointShape: PointShape.Square,
+            controlPointShape: PointShape.Circle,
             anchorPointColor: 'blue',
             controlPointColor: 'magenta',
             anchorPointRadius: 4,
@@ -119,6 +124,8 @@ export default class BezierTool {
         this.gCanvas.addEventListener('DOMMouseScroll',this._scrollHandler,false);
         this.gCanvas.addEventListener('mousewheel',this._scrollHandler,false);
 
+        this._setMode(Mode.Selecting);
+/*
         this._selectButton = document.getElementById('selectMode') as HTMLInputElement;
         this._selectButton.addEventListener("click", () => {
             this.setMode(Mode.Selecting, 'selectButton');
@@ -138,8 +145,6 @@ export default class BezierTool {
         this._drawButton.addEventListener("click", () => {
             this.setMode(Mode.Drawing);
         }, false);
-
-        this.setMode(Mode.Selecting);
 
         var lockButton: HTMLInputElement = document.getElementById('lockControl') as HTMLInputElement;
         lockButton.addEventListener("click", () => {
@@ -189,6 +194,7 @@ export default class BezierTool {
             }
 
         }, false);
+*/
 
         var setSrcButton = document.getElementById('addImgSrc');
         setSrcButton.addEventListener('click', () => {
@@ -235,6 +241,20 @@ export default class BezierTool {
         this._lastTouchDistance = 0;
     }
 
+    clearAllPoints(): void {
+        var doDelete = confirm('Clear all points?');
+        if (doDelete) {
+            this.gBezierPath = null;
+            this._setMode(Mode.Selecting);
+            this.render();
+            this.renderImageProcessingCanvas();
+        }
+    }
+
+    get options(): BezierToolOptions {
+        return this._options;
+    }
+
     handleKeyDown(event: any): void {
         switch(event.key) {
             case 'r':
@@ -250,43 +270,89 @@ export default class BezierTool {
     handleKeyUp(event: any): void {
     }
 
-    setMode(mode: Mode, note: string = ''): void {
-        this.mode = mode;
-        console.log(`setMode: ${Mode[mode]}: ${note}`);
+    lockControls(value: boolean): void {
+        this._options.createSmoothLineSegments = value;
+    }
 
-        this._addButton.checked = false;
-        this._selectButton.checked = false;
-        this._removeButton.checked = false;
-        this._drawButton.checked = false;
+    hideAnchors(value: boolean): void {
+        this._options.hideAnchorPoints = value;
+        this.render();
+    }
 
+    hideControls(value: boolean): void {
+        this._options.hideControlPoints = value;
+        this.render();
+    }
+
+    setSmoothing(value: number): void {
+        this._options.simplifyPathTolerance = value;
+    }
+
+    setSpacing(value: number): void {
+        this._options.minDrawPointSpacing = value;
+    }
+
+    private _setCursor(mode: Mode): void {
         switch (mode) {
-            case Mode.Adding:
-                this._addButton.checked = true;
+            case Mode.Panning:
+                this.gCanvas.style.cursor = `url('assets/cursors/pan.png') 11 11, move`;
                 break;
             case Mode.Selecting:
-                this._selectButton.checked = true;
+                this.gCanvas.style.cursor = `url('assets/cursors/select.png') 7 3, default`;
                 break;
-            case Mode.Removing:
-                this._removeButton.checked = true;
+            case Mode.Dragging:
+                this.gCanvas.style.cursor = `url('assets/cursors/select.png') 7 3, default`;
+                break;
+            case Mode.Adding:
+                this.gCanvas.style.cursor = `url('assets/cursors/add.png') 4 18, default`;
                 break;
             case Mode.Drawing:
-                this._drawButton.checked = true;
+                this.gCanvas.style.cursor = `url('assets/cursors/draw.png') 3 17, default`;
+                break;
+            case Mode.Editing:
+                this.gCanvas.style.cursor = `url('assets/cursors/edit.png') 7 3, default`;
+                break;
+            case Mode.Removing:
+                this.gCanvas.style.cursor = `url('assets/cursors/delete.png') 4 18, default`;
+                break;
+            case Mode.Inserting:
+                this.gCanvas.style.cursor = `url('assets/cursors/insert.png') 4 18, default`;
+                break;
+            case Mode.Modifying:
                 break;
         }
     }
 
+    // call _setMode from within BezierTool to emit the modeChange event
+    private _setMode(mode: Mode, note: string = ''): void {
+        this.setMode(mode, note);
+        this.emit('modeChange');
+    }
+
+    // call setMode from outside BezierTool to suppress the modeChange event
+    setMode(mode: Mode, note: string = ''): void {
+        this.mode = mode;
+        console.log(`setMode: ${Mode[mode]}: ${note}`);
+        this._setCursor(mode);
+    }
+
+    // bootstrap + bootstrap-theme: this.gCanvas.offsetLeft, this.gCanvas.offsetTop = 45, 209
     getMousePosition(e: any) {
         var x = 0;
         var y = 0;
-        if (e.pageX != undefined && e.pageY != undefined) {
-            x = e.pageX;
-            y = e.pageY;
-        }
-        x = x - this.gCanvas.offsetLeft - 3; // 3 is a magic number (corrects for border)
-        y = y - this.gCanvas.offsetTop - 3;
+        // if (e.pageX != undefined && e.pageY != undefined) {
+        //     x = e.pageX;
+        //     y = e.pageY;
+        // }
+        var rect = this.gCanvas.getBoundingClientRect();
+        x = e.clientX - rect.left - 3; // 3 is a magic number (corrects for border)
+        y = e.clientY - rect.top - 3;
+
+        // x = x - this.gCanvas.offsetLeft - 3; // 3 is a magic number (corrects for border)
+        // y = y - this.gCanvas.offsetTop - 3;
         let txPoint = this._canvasTxr.transformedPoint(x, y);
         // console.log(`getMousePosition: (${x}, ${y}) -> (${txPoint.x}, ${txPoint.y})`);
-        return new Point(txPoint.x, txPoint.y);
+        return {pt: new Point(txPoint.x, txPoint.y), pt0: new Point(x, y)};
     }
 
     handleDownAdd(pos: Point) {
@@ -320,10 +386,10 @@ export default class BezierTool {
     handleDownSelect(pos: Point): boolean {
         let result: boolean = false;
         if (!this.gBezierPath) {
-            this.setMode(Mode.Panning, '!this.gBezierPath');
+            this._setMode(Mode.Panning, '!this.gBezierPath');
             this.gCanvas.addEventListener("mousemove", this._mouseMoveHandler, false);
         } else {
-            var selected = this.gBezierPath.selectPoint(pos, {hideAnchorPoints: this._options.hideAnchorPoints, hideControlPoints: this._options.hideControlPoints});
+            var selected = this.gBezierPath.selectPoint(pos, {transformer: this._canvasTxr, hideAnchorPoints: this._options.hideAnchorPoints, hideControlPoints: this._options.hideControlPoints});
             if (selected) {
                 if (BezierTool.ALT_KEY_DOWN || this._doubleClick) {
                     if (this.gBezierPath.selectedSegment.type == LineSegmentType.SMOOTH) {
@@ -334,13 +400,13 @@ export default class BezierTool {
                 } else if (BezierTool.X_KEY_DOWN) {
                     this.gBezierPath.deletePoint(pos);
                 } else {
-                    this.setMode(Mode.Dragging);
+                    this._setMode(Mode.Dragging);
                     this.gCanvas.addEventListener("mousemove", this._mouseMoveHandler, false);
                 }
                 result = true;
             } else if (this.mode == Mode.Selecting) {
                 this.gBezierPath.deselectPoints();
-                this.setMode(Mode.Panning, 'not selected');
+                this._setMode(Mode.Panning, 'not selected');
                 this.gCanvas.addEventListener("mousemove", this._mouseMoveHandler, false);
             }
         }
@@ -353,7 +419,7 @@ export default class BezierTool {
         } else {
             var deleted = this.gBezierPath.deletePoint(pos);
             if (!deleted) {
-                this.setMode(Mode.Selecting, 'handleDownRemove');
+                this._setMode(Mode.Selecting, 'handleDownRemove');
             }
         }
     }
@@ -370,16 +436,16 @@ export default class BezierTool {
         // console.log(`handleDown: mode: ${Mode[this.mode]}`)
         switch (this.mode) {
             case Mode.Adding:
-                this.handleDownAdd(pos);
+                this.handleDownAdd(pos.pt);
                 break;
             case Mode.Selecting:
-                this.handleDownSelect(pos);
+                this.handleDownSelect(pos.pt);
                 break;
             case Mode.Removing:
-                this.handleDownRemove(pos);
+                this.handleDownRemove(pos.pt);
                 break;
             case Mode.Drawing:
-                this.handleDownDraw(pos);
+                this.handleDownDraw(pos.pt);
                 break;
         }
         this.render();
@@ -414,11 +480,11 @@ export default class BezierTool {
         var pos = this.getMousePosition(e);
 
         if (this.mode == Mode.Dragging) {
-            this.gBezierPath.updateSelected(pos);
+            this.gBezierPath.updateSelected(pos.pt);
         } else if (this.mode == Mode.Drawing) {
             let lineSegmentType = this._options.createSmoothLineSegments ? LineSegmentType.SMOOTH : LineSegmentType.CORNER;
-            if (!this.gBezierPath.tail.pathPointIntersects(pos, this._options.minDrawPointSpacing)) {
-                this.gBezierPath.addPoint(pos, lineSegmentType, <LineSegmentOptions>this._options);
+            if (!this.gBezierPath.tail.pathPointIntersects(pos.pt, this._options.minDrawPointSpacing)) {
+                this.gBezierPath.addPoint(pos.pt, lineSegmentType, <LineSegmentOptions>this._options);
             }
         } else if (this.mode == Mode.Panning) {
             this._canvasTxr.handleMousemove(e); //mousemove(pos);
@@ -456,18 +522,18 @@ export default class BezierTool {
 
         if (this.mode == Mode.Dragging) {
             this.gBezierPath.clearSelected();
-            this.setMode(Mode.Selecting, 'handleUp, Dragging');
+            this._setMode(Mode.Selecting, 'handleUp, Dragging');
         } else if (this.mode == Mode.Drawing) {
             this.gBezierPath.clearSelected();
             this.gBezierPath.simplifyPath(this._options.simplifyPathTolerance);
-            this.setMode(Mode.Selecting, 'handleUp, Drawing');
+            this._setMode(Mode.Selecting, 'handleUp, Drawing');
             this.render();
         } else if (this.mode == Mode.Panning) {
-            this.setMode(Mode.Selecting, 'handleUp, Panning');
+            this._setMode(Mode.Selecting, 'handleUp, Panning');
         }
         this._doubleClick = false;
         this.renderImageProcessingCanvas();
-        if (this.gBezierPath) {
+        if (false && this.gBezierPath) {
             var jsonBox = document.getElementById('putJSON');
             if (jsonBox) {
                 jsonBox.innerHTML = JSON.stringify(this.gBezierPath.toJson(), null, 2); //is.gBezierPath.toJSString();

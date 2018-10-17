@@ -32,7 +32,7 @@ export default class LineSegment {
 
     private _ctrlHandle1: ControlHandle; // Control point 1.
     private _ctrlHandle2: ControlHandle; // Control point 2.
-    private _controlPointMagnitude: number = 20;
+    private _controlPointMagnitude: number = 10;
     private _options: LineSegmentOptions;
 
 
@@ -184,13 +184,18 @@ export default class LineSegment {
         options = options || {};
         let hideAnchorPoints: boolean = options.hideAnchorPoints;
         let hideControlPoints: boolean = options.hideControlPoints;
-        if (!hideControlPoints && this.controlPointsActive && this.next && this.next._ctrlHandle1 && this.next._ctrlHandle1.contains(pos)) {
+        let transformer: CanvasTransformer = options.transformer;
+        let radius: number = this.pt.SELECT_RADIUS;
+        if (transformer && transformer.getScale()) {
+            radius = radius / transformer.getScale();
+        }
+        if (!hideControlPoints && this.controlPointsActive && this.next && this.next._ctrlHandle1 && this.next._ctrlHandle1.contains(pos, radius)) {
             this.selectedPoint = this.next._ctrlHandle1;
             return true;
-        } else if (!hideControlPoints && this.controlPointsActive && this._ctrlHandle2 && this._ctrlHandle2.contains(pos)) {
+        } else if (!hideControlPoints && this.controlPointsActive && this._ctrlHandle2 && this._ctrlHandle2.contains(pos, radius)) {
             this.selectedPoint = this._ctrlHandle2;
             return true;
-        } else if (!hideAnchorPoints && this.pathPointIntersects(pos)) {
+        } else if (!hideAnchorPoints && this.pathPointIntersects(pos, radius)) {
             this.selectedPoint = this.pt;
             return true;
         }
