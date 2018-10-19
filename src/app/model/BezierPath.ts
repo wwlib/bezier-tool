@@ -162,11 +162,26 @@ export default class BezierPath {
         return vertices;
     }
 
+    getSegments(): any {
+        let segments: any = [];
+        var current: LineSegment = this.head;
+        while (current != null) {
+            // let currentTime: number = current.time - this.startTime;
+            // let segment: any = {x: current.pt.x, y: current.pt.y, t: currentTime};
+
+            segments.push(current.toJson(this.startTime));
+            current = current.next;
+        }
+        return segments;
+    }
+
     toJson(): any {
         let json: any = {};
         json.startTime = this.startTime;
         json.vertices = this.getVertices();
         json.vertexCount = json.vertices.length;
+        json.segments = this.getSegments();
+        json.segmentCount = json.segments.length;
         json.width = 500; //TODO
         json.height = 375; //TODO
         json.originX = 0;

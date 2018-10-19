@@ -12,7 +12,9 @@ body {
 }
 
 canvas {
-  border: 3px solid black;
+    border-radius: 6px;
+    margin: 3px;
+    background-color: #232628;
 }
 
 #container {

@@ -215,6 +215,38 @@ export default class LineSegment {
         return this.interpolateVertices(10, pathStartTime);
     }
 
+    toJson(pathStartTime: number = 0): any {
+        let segment: any = {};
+        segment.point = {x: this.pt.x, y: this.pt.y};
+        segment.type = LineSegmentType[this.type];
+        segment.time = this.time - pathStartTime;
+        if (this._ctrlHandle1) {
+            segment.controlPoint1 = {
+                pt: {x: this._ctrlHandle1.x, y: this._ctrlHandle1.y},
+
+            };
+        }
+        if (this._ctrlHandle2) {
+            segment.controlPoint2 = {
+                pt: {x: this._ctrlHandle2.x, y: this._ctrlHandle2.y},
+            }
+        }
+        return segment;
+    }
+
+    // public pt: AnchorPoint; // Path point.
+    // public next: LineSegment; // Next LineSegment in path
+    // public prev: LineSegment; // Previous LineSegment in path
+    // public selectedPoint: AnchorPoint | ControlHandle; // Specific point on the LineSegment that is selected.
+    // public type: LineSegmentType;
+    // public time: number;
+    // public controlPointsActive: boolean;
+    //
+    // private _ctrlHandle1: ControlHandle; // Control point 1.
+    // private _ctrlHandle2: ControlHandle; // Control point 2.
+    // private _controlPointMagnitude: number = 10;
+    // private _options: LineSegmentOptions;
+
     interpolateVertices(divisions: number = 10, pathStartTime: number = 0): any[] {
         let vertices: any[] = [];
         if (this.prev && this._ctrlHandle1 && this._ctrlHandle2) {

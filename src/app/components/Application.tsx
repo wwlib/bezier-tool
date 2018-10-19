@@ -2,6 +2,7 @@ import * as React from "react";
 import * as ReactBootstrap from "react-bootstrap";
 import TopNav from './TopNav';
 import Toolbar from './Toolbar';
+import CanvasContainer from './CanvasContainer';
 import Model from '../model/Model';
 import { BezierToolOptions, Mode } from '../model/BezierTool';
 
@@ -11,7 +12,8 @@ export interface ApplicationProps { model: Model }
 export interface ApplicationState {
     log: string,
     toolbarOptions: BezierToolOptions,
-    toolbarMode: Mode
+    toolbarMode: Mode,
+    srcImageURL: string
 }
 
 export default class Application extends React.Component<ApplicationProps, ApplicationState> {
@@ -23,11 +25,13 @@ export default class Application extends React.Component<ApplicationProps, Appli
         this.setState({
             log: '',
             toolbarOptions: this.props.model.bezierTool.options,
-            toolbarMode: this.props.model.bezierTool.mode
+            toolbarMode: this.props.model.bezierTool.mode,
+            srcImageURL: 'assets/peter-rabbit.jpg'
         });
     }
 
     componentDidMount() {
+        this.props.model.bezierTool.setupUI();
         this.props.model.bezierTool.addListener('modeChange', this._modeChangeHandler);
     }
 
@@ -136,6 +140,27 @@ export default class Application extends React.Component<ApplicationProps, Appli
 
     }
 
+    onDownloadClick(event: any): void {
+        let id = event.nativeEvent.target.id;
+        switch (id) {
+            case 'downloadSVG':
+                this.props.model.bezierTool.downloadSVG();
+                break;
+            case 'downloadJSON':
+                this.props.model.bezierTool.downloadJSON();
+                break;
+        }
+    }
+
+    handleInputChange(event: any) {
+    let nativeEvent: any = event.nativeEvent;
+    switch(nativeEvent.target.name) {
+        case 'imageSrc':
+            this.setState({ srcImageURL: nativeEvent.target.value});
+            break;
+    }
+}
+
     layout(): any {
         let layout =
         <ReactBootstrap.Grid>
@@ -147,6 +172,20 @@ export default class Application extends React.Component<ApplicationProps, Appli
                 <ReactBootstrap.Row>
                     <ReactBootstrap.Col>
                         <Toolbar clickHandler={this.onToolbarClick.bind(this)} options={this.props.model.bezierTool.options} mode={this.props.model.bezierTool.mode} />
+                        <CanvasContainer canvasId={"bezierCanvas"} width={500} height={375} />
+                        <CanvasContainer canvasId={"bitmapCanvas"} width={500} height={375} />
+                    </ReactBootstrap.Col>
+                </ReactBootstrap.Row>
+                <ReactBootstrap.Row>
+                    <ReactBootstrap.Col>
+                        <ReactBootstrap.FormGroup>
+                            <ReactBootstrap.Button id="addImgSrc">Set Canvas Background</ReactBootstrap.Button>
+                            <ReactBootstrap.FormControl type="text" id="imageSrc" name="imageSrc" value={this.state.srcImageURL} onChange={this.handleInputChange.bind(this)} style={{width: "300px", display: "inline-block"}}/>
+                        </ReactBootstrap.FormGroup>
+                        <ReactBootstrap.ButtonGroup onClick={this.onDownloadClick.bind(this)}>
+                            <ReactBootstrap.Button id="downloadSVG">Downlod SVG</ReactBootstrap.Button>
+                            <ReactBootstrap.Button id="downloadJSON">Downlod JSON</ReactBootstrap.Button>
+                        </ReactBootstrap.ButtonGroup>
                     </ReactBootstrap.Col>
                 </ReactBootstrap.Row>
             </ReactBootstrap.Grid>;

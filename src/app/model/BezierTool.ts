@@ -5,8 +5,6 @@ import { LineSegmentType, LineSegmentOptions } from './LineSegment';
 import CanvasTransformer, { Coords } from './CanvasTransformer';
 import { Vector2, Matrix4 } from 'math.gl';
 
-// const panzoom = require('pan-zoom');
-
 export enum Mode {
     Panning = 1,
     Selecting,
@@ -43,15 +41,15 @@ export default class BezierTool extends EventEmitter {
     static SHIFT_KEY_DOWN: boolean;
     static X_KEY_DOWN: boolean;
 
-    public gCanvas: HTMLCanvasElement;
-    public gCtx: CanvasRenderingContext2D
-    public gBackCanvas: HTMLCanvasElement;
-    public gBackCtx: CanvasRenderingContext2D;
+    public mainCanvas: HTMLCanvasElement;
+    public mainCtx: CanvasRenderingContext2D
+    public offscreenCanvas: HTMLCanvasElement;
+    public offscreenCtx: CanvasRenderingContext2D;
     public bitmapCanvas: HTMLCanvasElement;
     public bitmapCtx: CanvasRenderingContext2D;
-    public gBezierPath: BezierPath;
+    public bezierPath: BezierPath;
     public mode: Mode; //gState;
-    public gBackgroundImg: HTMLImageElement;
+    public backgroundImg: HTMLImageElement;
     public WIDTH;
     public HEIGHT;
 
@@ -95,124 +93,49 @@ export default class BezierTool extends EventEmitter {
             lineWeight: 1,
         };
         this._options = Object.assign(defaultOptions, options);
+    }
 
-        this.gCanvas = document.getElementById('bezierCanvas') as HTMLCanvasElement;
-        this.gCtx = this.gCanvas.getContext('2d');
-        this.gCtx.imageSmoothingEnabled = false;
-        this.HEIGHT = this.gCanvas.height;
-        this.WIDTH = this.gCanvas.width;
+    setupUI(): void {
+        this.mainCanvas = document.getElementById('bezierCanvas') as HTMLCanvasElement;
+        this.mainCtx = this.mainCanvas.getContext('2d');
+        this.mainCtx.imageSmoothingEnabled = false;
+        this.HEIGHT = this.mainCanvas.height;
+        this.WIDTH = this.mainCanvas.width;
 
-        this.gBackCanvas = document.createElement('canvas');
-        this.gBackCanvas.height = this.HEIGHT;
-        this.gBackCanvas.width = this.WIDTH;
-        this.gBackCtx = this.gBackCanvas.getContext('2d');
-        this.gBackCtx.imageSmoothingEnabled = false;
+        this.offscreenCanvas = document.createElement('canvas');
+        this.offscreenCanvas.height = this.HEIGHT;
+        this.offscreenCanvas.width = this.WIDTH;
+        this.offscreenCtx = this.offscreenCanvas.getContext('2d');
+        this.offscreenCtx.imageSmoothingEnabled = false;
 
         this.bitmapCanvas = document.getElementById("bitmapCanvas") as HTMLCanvasElement;
         this.bitmapCtx = this.bitmapCanvas.getContext("2d");
 
-        this._canvasTxr = new CanvasTransformer(this.gBackCanvas);
-
-        if (this._iOSDevice) {
-            this.gCanvas.addEventListener('touchstart', this._touchstartHandler, {passive: false});
-            this.gCanvas.addEventListener('touchend', this._touchendHandler, {passive: false});
-        } else {
-            this.gCanvas.addEventListener("mousedown", this._mouseDownHandler, false);
-            this.gCanvas.addEventListener("mouseup", this._mouseUpHandler, false);
-        }
-
-        this.gCanvas.addEventListener('DOMMouseScroll',this._scrollHandler,false);
-        this.gCanvas.addEventListener('mousewheel',this._scrollHandler,false);
-
-        this._setMode(Mode.Selecting);
-/*
-        this._selectButton = document.getElementById('selectMode') as HTMLInputElement;
-        this._selectButton.addEventListener("click", () => {
-            this.setMode(Mode.Selecting, 'selectButton');
-        }, false);
-
-        this._addButton = document.getElementById('addMode') as HTMLInputElement;
-        this._addButton.addEventListener("click", () => {
-            this.setMode(Mode.Adding);
-        }, false);
-
-        this._removeButton = document.getElementById('removeMode') as HTMLInputElement;
-        this._removeButton.addEventListener("click", () => {
-            this.setMode(Mode.Removing);
-        }, false);
-
-        this._drawButton = document.getElementById('drawMode') as HTMLInputElement;
-        this._drawButton.addEventListener("click", () => {
-            this.setMode(Mode.Drawing);
-        }, false);
-
-        var lockButton: HTMLInputElement = document.getElementById('lockControl') as HTMLInputElement;
-        lockButton.addEventListener("click", () => {
-            this._options.createSmoothLineSegments = lockButton.checked;
-        }, false);
-
-        var anchorButton: HTMLInputElement = document.getElementById('hideAnchorPoints') as HTMLInputElement;
-        anchorButton.checked = this._options.hideAnchorPoints;
-        anchorButton.addEventListener("click", () => {
-            this._options.hideAnchorPoints = anchorButton.checked;
-            this.render();
-        }, false);
-
-        var controlButton: HTMLInputElement = document.getElementById('hideControlPoints') as HTMLInputElement;
-        controlButton.checked = this._options.hideControlPoints;
-        controlButton.addEventListener("click", () => {
-            this._options.hideControlPoints = controlButton.checked;
-            this.render();
-        }, false);
-
-        var smoothingSlider: HTMLInputElement = document.getElementById("smoothingSlider")as HTMLInputElement;
-        var smoothingValue: HTMLOutputElement = document.getElementById("smoothingValue")as HTMLOutputElement;
-        smoothingSlider.oninput = () => {
-            this._options.simplifyPathTolerance = Number(smoothingSlider.value);
-            smoothingValue.value = smoothingSlider.value
-        }
-        smoothingSlider.value = `${this._options.simplifyPathTolerance}`;
-        smoothingValue.value = `${this._options.simplifyPathTolerance}`;
-
-        var spacingSlider: HTMLInputElement = document.getElementById("spacingSlider")as HTMLInputElement;
-        var spacingValue: HTMLOutputElement = document.getElementById("spacingValue")as HTMLOutputElement;
-        spacingSlider.oninput = () => {
-            this._options.simplifyPathTolerance = Number(spacingSlider.value);
-            spacingValue.value = spacingSlider.value;
-        }
-        spacingSlider.value = `${this._options.minDrawPointSpacing}`;
-        spacingValue.value = `${this._options.minDrawPointSpacing}`;
-
-        var clearButton = document.getElementById('clear');
-        clearButton.addEventListener('click', () => {
-            var doDelete = confirm('Clear all points?');
-            if (doDelete) {
-                this.gBezierPath = null;
-                this.setMode(Mode.Selecting);
-                this.render();
-                this.renderImageProcessingCanvas();
-            }
-
-        }, false);
-*/
+        this._canvasTxr = new CanvasTransformer(this.offscreenCanvas);
 
         var setSrcButton = document.getElementById('addImgSrc');
         setSrcButton.addEventListener('click', () => {
             var input: HTMLInputElement = document.getElementById('imageSrc') as HTMLInputElement;
-            this.gBackgroundImg = document.createElement('img');
-            this.gBackgroundImg.width = this.WIDTH;
+            this.backgroundImg = document.createElement('img');
+            this.backgroundImg.width = this.WIDTH;
             // No image if invalid path
-            this.gBackgroundImg.onerror = () => {
-                this.gBackgroundImg = null;
+            this.backgroundImg.onerror = () => {
+                this.backgroundImg = null;
             };
-            this.gBackgroundImg.onload = () => {
-                this._canvasTxr.image = this.gBackgroundImg; //DEBUG
+            this.backgroundImg.onload = () => {
+                this._canvasTxr.image = this.backgroundImg; //DEBUG
                 this.render();
                 this.renderImageProcessingCanvas();
             };
-            this.gBackgroundImg.src = input.value;
+            this.backgroundImg.src = input.value;
         }, false);
 
+        this.setupKeyHandlers();
+        this.setupTouchHandlers();
+        this._setMode(Mode.Selecting);
+    }
+
+    setupKeyHandlers(): void {
         BezierTool.ALT_KEY_DOWN = false;
         BezierTool.META_KEY_DOWN = false;
         BezierTool.CTRL_KEY_DOWN = false;
@@ -241,10 +164,22 @@ export default class BezierTool extends EventEmitter {
         this._lastTouchDistance = 0;
     }
 
+    setupTouchHandlers(): void {
+        if (this._iOSDevice) {
+            this.mainCanvas.addEventListener('touchstart', this._touchstartHandler, {passive: false});
+            this.mainCanvas.addEventListener('touchend', this._touchendHandler, {passive: false});
+        } else {
+            this.mainCanvas.addEventListener("mousedown", this._mouseDownHandler, false);
+            this.mainCanvas.addEventListener("mouseup", this._mouseUpHandler, false);
+        }
+        this.mainCanvas.addEventListener('DOMMouseScroll',this._scrollHandler,false);
+        this.mainCanvas.addEventListener('mousewheel',this._scrollHandler,false);
+    }
+
     clearAllPoints(): void {
         var doDelete = confirm('Clear all points?');
         if (doDelete) {
-            this.gBezierPath = null;
+            this.bezierPath = null;
             this._setMode(Mode.Selecting);
             this.render();
             this.renderImageProcessingCanvas();
@@ -258,7 +193,7 @@ export default class BezierTool extends EventEmitter {
     handleKeyDown(event: any): void {
         switch(event.key) {
             case 'r':
-                this.gBezierPath.recalcuateControlPoints();
+                this.bezierPath.recalcuateControlPoints();
                 this.render();
                 break;
             case 'c':
@@ -295,28 +230,28 @@ export default class BezierTool extends EventEmitter {
     private _setCursor(mode: Mode): void {
         switch (mode) {
             case Mode.Panning:
-                this.gCanvas.style.cursor = `url('assets/cursors/pan.png') 11 11, move`;
+                this.mainCanvas.style.cursor = `url('assets/cursors/pan.png') 11 11, move`;
                 break;
             case Mode.Selecting:
-                this.gCanvas.style.cursor = `url('assets/cursors/select.png') 7 3, default`;
+                this.mainCanvas.style.cursor = `url('assets/cursors/select.png') 7 3, default`;
                 break;
             case Mode.Dragging:
-                this.gCanvas.style.cursor = `url('assets/cursors/select.png') 7 3, default`;
+                this.mainCanvas.style.cursor = `url('assets/cursors/select.png') 7 3, default`;
                 break;
             case Mode.Adding:
-                this.gCanvas.style.cursor = `url('assets/cursors/add.png') 4 18, default`;
+                this.mainCanvas.style.cursor = `url('assets/cursors/add.png') 4 18, default`;
                 break;
             case Mode.Drawing:
-                this.gCanvas.style.cursor = `url('assets/cursors/draw.png') 3 17, default`;
+                this.mainCanvas.style.cursor = `url('assets/cursors/draw.png') 3 17, default`;
                 break;
             case Mode.Editing:
-                this.gCanvas.style.cursor = `url('assets/cursors/edit.png') 7 3, default`;
+                this.mainCanvas.style.cursor = `url('assets/cursors/edit.png') 7 3, default`;
                 break;
             case Mode.Removing:
-                this.gCanvas.style.cursor = `url('assets/cursors/delete.png') 4 18, default`;
+                this.mainCanvas.style.cursor = `url('assets/cursors/delete.png') 4 18, default`;
                 break;
             case Mode.Inserting:
-                this.gCanvas.style.cursor = `url('assets/cursors/insert.png') 4 18, default`;
+                this.mainCanvas.style.cursor = `url('assets/cursors/insert.png') 4 18, default`;
                 break;
             case Mode.Modifying:
                 break;
@@ -336,7 +271,7 @@ export default class BezierTool extends EventEmitter {
         this._setCursor(mode);
     }
 
-    // bootstrap + bootstrap-theme: this.gCanvas.offsetLeft, this.gCanvas.offsetTop = 45, 209
+    // bootstrap + bootstrap-theme: this.mainCanvas.offsetLeft, this.mainCanvas.offsetTop = 45, 209
     getMousePosition(e: any) {
         var x = 0;
         var y = 0;
@@ -344,12 +279,12 @@ export default class BezierTool extends EventEmitter {
         //     x = e.pageX;
         //     y = e.pageY;
         // }
-        var rect = this.gCanvas.getBoundingClientRect();
+        var rect = this.mainCanvas.getBoundingClientRect();
         x = e.clientX - rect.left - 3; // 3 is a magic number (corrects for border)
         y = e.clientY - rect.top - 3;
 
-        // x = x - this.gCanvas.offsetLeft - 3; // 3 is a magic number (corrects for border)
-        // y = y - this.gCanvas.offsetTop - 3;
+        // x = x - this.mainCanvas.offsetLeft - 3; // 3 is a magic number (corrects for border)
+        // y = y - this.mainCanvas.offsetTop - 3;
         let txPoint = this._canvasTxr.transformedPoint(x, y);
         // console.log(`getMousePosition: (${x}, ${y}) -> (${txPoint.x}, ${txPoint.y})`);
         return {pt: new Point(txPoint.x, txPoint.y), pt0: new Point(x, y)};
@@ -357,67 +292,67 @@ export default class BezierTool extends EventEmitter {
 
     handleDownAdd(pos: Point) {
         let lineSegmentType = this._options.createSmoothLineSegments ? LineSegmentType.SMOOTH : LineSegmentType.CORNER;
-        if (!this.gBezierPath) {
-            this.gBezierPath = new BezierPath(pos, lineSegmentType, <LineSegmentOptions>this._options);
+        if (!this.bezierPath) {
+            this.bezierPath = new BezierPath(pos, lineSegmentType, <LineSegmentOptions>this._options);
         } else {
             // If this was probably a selection, change to
             // select/drag mode
             if (this.handleDownSelect(pos)) {
                 //
             } else {
-                this.gBezierPath.addPoint(pos, lineSegmentType, <LineSegmentOptions>this._options);
+                this.bezierPath.addPoint(pos, lineSegmentType, <LineSegmentOptions>this._options);
             }
         }
     }
 
     handleDownDraw(pos: Point) {
         let lineSegmentType = this._options.createSmoothLineSegments ? LineSegmentType.SMOOTH : LineSegmentType.CORNER;
-        if (!this.gBezierPath) {
-            this.gBezierPath = new BezierPath(pos, lineSegmentType, <LineSegmentOptions>this._options);
+        if (!this.bezierPath) {
+            this.bezierPath = new BezierPath(pos, lineSegmentType, <LineSegmentOptions>this._options);
         } else {
-            if (!this.gBezierPath.tail.pathPointIntersects(pos)) {
-                this.gBezierPath.addPoint(pos, lineSegmentType, <LineSegmentOptions>this._options);
+            if (!this.bezierPath.tail.pathPointIntersects(pos)) {
+                this.bezierPath.addPoint(pos, lineSegmentType, <LineSegmentOptions>this._options);
             }
         }
-        this.gCanvas.addEventListener("mousemove", this._mouseMoveHandler, false);
+        this.mainCanvas.addEventListener("mousemove", this._mouseMoveHandler, false);
     }
 
     // Return true/false if dragging mode
     handleDownSelect(pos: Point): boolean {
         let result: boolean = false;
-        if (!this.gBezierPath) {
-            this._setMode(Mode.Panning, '!this.gBezierPath');
-            this.gCanvas.addEventListener("mousemove", this._mouseMoveHandler, false);
+        if (!this.bezierPath) {
+            this._setMode(Mode.Panning, '!this.bezierPath');
+            this.mainCanvas.addEventListener("mousemove", this._mouseMoveHandler, false);
         } else {
-            var selected = this.gBezierPath.selectPoint(pos, {transformer: this._canvasTxr, hideAnchorPoints: this._options.hideAnchorPoints, hideControlPoints: this._options.hideControlPoints});
+            var selected = this.bezierPath.selectPoint(pos, {transformer: this._canvasTxr, hideAnchorPoints: this._options.hideAnchorPoints, hideControlPoints: this._options.hideControlPoints});
             if (selected) {
                 if (BezierTool.ALT_KEY_DOWN || this._doubleClick) {
-                    if (this.gBezierPath.selectedSegment.type == LineSegmentType.SMOOTH) {
-                        this.gBezierPath.selectedSegment.type = LineSegmentType.CORNER;
+                    if (this.bezierPath.selectedSegment.type == LineSegmentType.SMOOTH) {
+                        this.bezierPath.selectedSegment.type = LineSegmentType.CORNER;
                     } else {
-                        this.gBezierPath.selectedSegment.type = LineSegmentType.SMOOTH;
+                        this.bezierPath.selectedSegment.type = LineSegmentType.SMOOTH;
                     }
                 } else if (BezierTool.X_KEY_DOWN) {
-                    this.gBezierPath.deletePoint(pos);
+                    this.bezierPath.deletePoint(pos);
                 } else {
                     this._setMode(Mode.Dragging);
-                    this.gCanvas.addEventListener("mousemove", this._mouseMoveHandler, false);
+                    this.mainCanvas.addEventListener("mousemove", this._mouseMoveHandler, false);
                 }
                 result = true;
             } else if (this.mode == Mode.Selecting) {
-                this.gBezierPath.deselectPoints();
+                this.bezierPath.deselectPoints();
                 this._setMode(Mode.Panning, 'not selected');
-                this.gCanvas.addEventListener("mousemove", this._mouseMoveHandler, false);
+                this.mainCanvas.addEventListener("mousemove", this._mouseMoveHandler, false);
             }
         }
         return result;
     }
 
     handleDownRemove(pos: Point) {
-        if (!this.gBezierPath) {
+        if (!this.bezierPath) {
             //
         } else {
-            var deleted = this.gBezierPath.deletePoint(pos);
+            var deleted = this.bezierPath.deletePoint(pos);
             if (!deleted) {
                 this._setMode(Mode.Selecting, 'handleDownRemove');
             }
@@ -454,7 +389,7 @@ export default class BezierTool extends EventEmitter {
 
     handleTouchStart(event: any): void {
         event.preventDefault();
-        this.gCanvas.addEventListener('touchmove', this._touchmoveHandler, {passive: false});
+        this.mainCanvas.addEventListener('touchmove', this._touchmoveHandler, {passive: false});
         if (event.targetTouches.length == 1) {
             let touch = event.targetTouches[0];
             this.handleDown(touch);
@@ -480,11 +415,11 @@ export default class BezierTool extends EventEmitter {
         var pos = this.getMousePosition(e);
 
         if (this.mode == Mode.Dragging) {
-            this.gBezierPath.updateSelected(pos.pt);
+            this.bezierPath.updateSelected(pos.pt);
         } else if (this.mode == Mode.Drawing) {
             let lineSegmentType = this._options.createSmoothLineSegments ? LineSegmentType.SMOOTH : LineSegmentType.CORNER;
-            if (!this.gBezierPath.tail.pathPointIntersects(pos.pt, this._options.minDrawPointSpacing)) {
-                this.gBezierPath.addPoint(pos.pt, lineSegmentType, <LineSegmentOptions>this._options);
+            if (!this.bezierPath.tail.pathPointIntersects(pos.pt, this._options.minDrawPointSpacing)) {
+                this.bezierPath.addPoint(pos.pt, lineSegmentType, <LineSegmentOptions>this._options);
             }
         } else if (this.mode == Mode.Panning) {
             this._canvasTxr.handleMousemove(e); //mousemove(pos);
@@ -516,16 +451,16 @@ export default class BezierTool extends EventEmitter {
     }
 
     handleUp(e: any) {
-        this.gCanvas.removeEventListener("mousemove", this._mouseMoveHandler, false);
-        this.gCanvas.removeEventListener('touchmove', this._touchmoveHandler, false);
+        this.mainCanvas.removeEventListener("mousemove", this._mouseMoveHandler, false);
+        this.mainCanvas.removeEventListener('touchmove', this._touchmoveHandler, false);
         this._canvasTxr.handleMouseup(e);
 
         if (this.mode == Mode.Dragging) {
-            this.gBezierPath.clearSelected();
+            this.bezierPath.clearSelected();
             this._setMode(Mode.Selecting, 'handleUp, Dragging');
         } else if (this.mode == Mode.Drawing) {
-            this.gBezierPath.clearSelected();
-            this.gBezierPath.simplifyPath(this._options.simplifyPathTolerance);
+            this.bezierPath.clearSelected();
+            this.bezierPath.simplifyPath(this._options.simplifyPathTolerance);
             this._setMode(Mode.Selecting, 'handleUp, Drawing');
             this.render();
         } else if (this.mode == Mode.Panning) {
@@ -533,16 +468,6 @@ export default class BezierTool extends EventEmitter {
         }
         this._doubleClick = false;
         this.renderImageProcessingCanvas();
-        if (false && this.gBezierPath) {
-            var jsonBox = document.getElementById('putJSON');
-            if (jsonBox) {
-                jsonBox.innerHTML = JSON.stringify(this.gBezierPath.toJson(), null, 2); //is.gBezierPath.toJSString();
-            }
-            var svgBox = document.getElementById('putSVG');
-            if (svgBox) {
-                svgBox.innerHTML = this.gBezierPath.toSvg(); //JSON.stringify(this.gBezierPath.toJson(), null, 2); //is.gBezierPath.toJSString();
-            }
-        }
     }
 
     handleTouchEnd(event: any): void {
@@ -557,30 +482,30 @@ export default class BezierTool extends EventEmitter {
 
     render() {
         this._canvasTxr.redraw();
-        this.gCtx.clearRect(0, 0, this.WIDTH, this.HEIGHT);
-        // if (this.gBezierPath) {
-        //     this.gBezierPath.draw(this.gBackCtx, {transformer: undefined, hideAnchorPoints: this._options.hideAnchorPoints, hideControlPoints: this._options.hideControlPoints});
+        this.mainCtx.clearRect(0, 0, this.WIDTH, this.HEIGHT);
+        // if (this.bezierPath) {
+        //     this.bezierPath.draw(this.offscreenCtx, {transformer: undefined, hideAnchorPoints: this._options.hideAnchorPoints, hideControlPoints: this._options.hideControlPoints});
         // }
-        this.gCtx.drawImage(this.gBackCanvas, 0, 0);
-        if (this.gBezierPath) {
-            this.gBezierPath.draw(this.gCtx, {transformer: this._canvasTxr, hideAnchorPoints: this._options.hideAnchorPoints, hideControlPoints: this._options.hideControlPoints});
+        this.mainCtx.drawImage(this.offscreenCanvas, 0, 0);
+        if (this.bezierPath) {
+            this.bezierPath.draw(this.mainCtx, {transformer: this._canvasTxr, hideAnchorPoints: this._options.hideAnchorPoints, hideControlPoints: this._options.hideControlPoints});
         }
     }
 
     renderImageProcessingCanvas(): void {
         this.bitmapCtx.clearRect(0, 0, this.bitmapCanvas.width, this.bitmapCanvas.height);
-        if (this.gBezierPath) {
-            if (this.gBackgroundImg) {
-                this.bitmapCtx.drawImage(this.gBackgroundImg, 0, 0, this.bitmapCanvas.width, this.bitmapCanvas.height);
+        if (this.bezierPath) {
+            if (this.backgroundImg) {
+                this.bitmapCtx.drawImage(this.backgroundImg, 0, 0, this.bitmapCanvas.width, this.bitmapCanvas.height);
             }
             var imgData: ImageData = this.bitmapCtx.getImageData(0, 0, this.bitmapCanvas.width, this.bitmapCanvas.height);
             let transparent: number = 0;
-            let polygon: any = this.gBezierPath.getVertices();
+            let polygon: any = this.bezierPath.getVertices();
 			let i: number = 0;
 			for (let y: number = 0; y < imgData.height; y++) {
 				for (let x: number = 0; x < imgData.width; x++) {
                     if (this.isInPolygon(polygon, {x: x, y: y})) {
-                        if (!this.gBackgroundImg) {
+                        if (!this.backgroundImg) {
                             imgData.data[i] = 128;
                             imgData.data[i+1] = 128;
                             imgData.data[i+2] = 128;
@@ -627,6 +552,29 @@ export default class BezierTool extends EventEmitter {
         return inside;
     }
 
+    downloadSVG(): void {
+        if (this.bezierPath) {
+            let text: string =  this.bezierPath.toSvg();
+            this.downloadFile('image/svg+xml', text, 'bezier.svg');
+        }
+    }
+
+    downloadJSON(): void {
+        if (this.bezierPath) {
+            let text: string = JSON.stringify(this.bezierPath.toJson(), null, 2);
+            this.downloadFile('application/json', text, 'bezier.json');
+        }
+    }
+
+    downloadFile(mime: string, text: string, filename: string): void {
+        var element = document.createElement('a');
+        element.setAttribute('href', 'data:' + mime + ',' + text);
+        element.setAttribute('download', filename);
+        element.style.display = 'none';
+        document.body.appendChild(element);
+        element.click();
+        document.body.removeChild(element);
+    }
 /*
     //// Mesh
 
