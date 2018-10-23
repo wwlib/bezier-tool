@@ -15,10 +15,15 @@ export default class CanvasTransformer {
     private _lastMousedown: Coords;
     private _lastMousemove: Coords;
     private _testImage: HTMLImageElement;
+    private _iOSDevice = !!navigator.platform.match(/iPhone|iPod|iPad/);
+    private _androidDevice = !!navigator.platform.match(/Android|Linux|null/);
 
     public mousedownHandler: any = this.handleMousedown.bind(this);
     public mouseupHandler: any = this.handleMouseup.bind(this);
     public mousemoveHandler: any = this.handleMousemove.bind(this);
+    public touchstartHandler: any = this.handleTouchstart.bind(this);
+    public touchendHandler: any = this.handleTouchend.bind(this);
+    public touchmoveHandler: any = this.handleTouchmove.bind(this);
     public scrollHandler: any = this.handleScroll.bind(this);
 
     //DEBUG
@@ -158,35 +163,101 @@ export default class CanvasTransformer {
         return evt.preventDefault() && false;
     };
 
-    handleMousedown(evt: any) {
+    getMousePosition(e: any) {
+        var x = 0;
+        var y = 0;
+        var rect = this.canvas.getBoundingClientRect();
+        x = e.clientX - rect.left;
+        y = e.clientY - rect.top;
+        return {x: x, y: y};
+    }
+
+    handleMousedown(event: any) {
         document.body.style.webkitUserSelect = document.body.style.userSelect = 'none';
-        this.lastX = evt.offsetX || (evt.pageX - this.canvas.offsetLeft);
-        this.lastY = evt.offsetY || (evt.pageY - this.canvas.offsetTop);
-        this.dragStart = this.transformedPoint(this.lastX, this.lastY);
+        this.canvas.addEventListener('mousemove', this.mousemoveHandler, false);
+        let pt: Coords = this.getMousePosition(event);
+        this.lastX = pt.x;
+        this.lastY = pt.y
+        this.dragStart = this.transformedPoint(pt.x, pt.y);
         this.dragged = false;
     }
 
-    handleMousemove(evt: any) {
-        this.lastX = evt.offsetX || (evt.pageX - this.canvas.offsetLeft);
-        this.lastY = evt.offsetY || (evt.pageY - this.canvas.offsetTop);
+    handleTouchstart(event: any): void {
+        event.preventDefault();
+        this.canvas.addEventListener('touchmove', this.touchmoveHandler, {passive: false});
+        if (event.targetTouches.length == 1) {
+            let touch = event.targetTouches[0];
+            this.handleMousedown(touch);
+        }
+    }
+
+    handleMousemove(event: any) {
+        let pt: Coords = this.getMousePosition(event);
+        this.lastX = pt.x;
+        this.lastY = pt.y;
         this.dragged = true;
 
         if (this.dragStart) {
-            var pt = this.transformedPoint(this.lastX, this.lastY);
-            this.translate(pt.x - this.dragStart.x, pt.y - this.dragStart.y);
+            var ptx = this.transformedPoint(pt.x, pt.y);
+            this.translate(ptx.x - this.dragStart.x, ptx.y - this.dragStart.y);
             this.redraw();
         }
     }
 
-    handleMouseup(evt: any) {
+    handleTouchmove(event: any): void {
+        event.preventDefault();
+        if (event.targetTouches.length == 1) {
+            let touch = event.targetTouches[0];
+            this.handleMousemove(touch);
+        } else if (event.targetTouches.length == 2) {
+            let touch = event.targetTouches[0];
+            let pt: Coords = this.getMousePosition(touch);
+            let diffY: number = pt.y - this.lastY;
+            this.lastX = pt.x;
+            this.lastY = pt.y;
+            let evt = {pageX: pt.x, pageY: pt.y, wheelDelta: diffY, preventDefault: function(){}};
+            this.handleScroll(evt);
+        }
+    }
+
+    handleMouseup(event: any) {
+        this.canvas.removeEventListener("mousemove", this.mousemoveHandler, false);
         this.dragStart = null;
     }
 
-    setupEvents(): void {
-        this.canvas.addEventListener('mousedown', this.mousedownHandler, false);
-        this.canvas.addEventListener('mousemove', this.mousemoveHandler, false);
-        this.canvas.addEventListener('mouseup', this.mouseupHandler, false);
-        this.canvas.addEventListener('DOMMouseScroll',this.handleScroll.bind(this),false);
-        this.canvas.addEventListener('mousewheel',this.handleScroll.bind(this),false);
+    handleTouchend(event: any): void {
+        this.canvas.removeEventListener('touchmove', this.touchmoveHandler, false);
+        this.handleMouseup(event);
+        event.preventDefault();
+    }
+
+    setupTouchHandlers(): void {
+        if (this._iOSDevice || this._androidDevice) {
+            this.canvas.addEventListener('touchstart', this.touchstartHandler, {passive: false});
+            this.canvas.addEventListener('touchend', this.touchendHandler, {passive: false});
+        } else {
+            this.canvas.addEventListener("mousedown", this.mousedownHandler, false);
+            this.canvas.addEventListener("mouseup", this.mouseupHandler, false);
+        }
+        this.canvas.addEventListener('DOMMouseScroll',this.scrollHandler,false);
+        this.canvas.addEventListener('mousewheel',this.scrollHandler,false);
+    }
+
+    dispose(): void {
+        this.canvas.removeEventListener('mousedown', this.mousedownHandler, false);
+        this.canvas.removeEventListener('mousemove', this.mousemoveHandler, false);
+        this.canvas.removeEventListener('mouseup', this.mouseupHandler, false);
+        this.canvas.removeEventListener('touchstart', this.touchstartHandler, false);
+        this.canvas.removeEventListener('touchmove', this.touchmoveHandler, false);
+        this.canvas.removeEventListener('touchend', this.touchendHandler, false);
+        this.canvas.removeEventListener('DOMMouseScroll',this.scrollHandler,false);
+        this.canvas.removeEventListener('mousewheel',this.scrollHandler,false);
+
+        this.canvas = undefined;
+        this._ctx = undefined;
+        this._svg = undefined;
+        this._xform = undefined;
+        this._savedTransforms = undefined;
+        this._testImage = undefined;
     }
 }
