@@ -22,8 +22,7 @@
     "react-bootstrap": "^0.32.4",
     "react-dom": "^16.3.2",
     "react-list": "^0.8.10",
-    "react-select": "^2.0.0",
-    "wordlist-english": "^1.2.1"
+    "react-select": "^2.0.0"
   },
   "devDependencies": {
     "@types/chai": "^4.1.6",

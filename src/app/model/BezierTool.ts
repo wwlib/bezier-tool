@@ -42,7 +42,7 @@ export default class BezierTool extends EventEmitter {
     static X_KEY_DOWN: boolean;
 
     public mainCanvas: HTMLCanvasElement;
-    public mainCtx: CanvasRenderingContext2D
+    public mainCtx: CanvasRenderingContext2D;
     public offscreenCanvas: HTMLCanvasElement;
     public offscreenCtx: CanvasRenderingContext2D;
     public bitmapCanvas: HTMLCanvasElement;
@@ -62,6 +62,7 @@ export default class BezierTool extends EventEmitter {
     private _touchendHandler: any = this.handleTouchEnd.bind(this);
     private _scrollHandler: any = this.handleScroll.bind(this);
     private _iOSDevice = !!navigator.platform.match(/iPhone|iPod|iPad/);
+    private _androidDevice = !!navigator.platform.match(/Android|Linux|null/);
 
     private _previousClickTime: number;
     private _doubleClick: boolean;
@@ -158,14 +159,10 @@ export default class BezierTool extends EventEmitter {
             if (event.key === 'x' && event.type === 'keyup') BezierTool.X_KEY_DOWN = false;
             this.handleKeyUp(event);
         }
-
-        this._previousClickTime = new Date().getTime();
-        this._doubleClick = false;
-        this._lastTouchDistance = 0;
     }
 
     setupTouchHandlers(): void {
-        if (this._iOSDevice) {
+        if (this._iOSDevice || this._androidDevice) {
             this.mainCanvas.addEventListener('touchstart', this._touchstartHandler, {passive: false});
             this.mainCanvas.addEventListener('touchend', this._touchendHandler, {passive: false});
         } else {
@@ -174,6 +171,10 @@ export default class BezierTool extends EventEmitter {
         }
         this.mainCanvas.addEventListener('DOMMouseScroll',this._scrollHandler,false);
         this.mainCanvas.addEventListener('mousewheel',this._scrollHandler,false);
+
+        this._previousClickTime = new Date().getTime();
+        this._doubleClick = false;
+        this._lastTouchDistance = 0;
     }
 
     clearAllPoints(): void {
