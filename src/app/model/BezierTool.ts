@@ -162,6 +162,7 @@ export default class BezierTool extends EventEmitter {
     }
 
     setupTouchHandlers(): void {
+        console.log(`iOS: ${this._iOSDevice}, android: ${this._androidDevice}`);
         if (this._iOSDevice || this._androidDevice) {
             this.mainCanvas.addEventListener('touchstart', this._touchstartHandler, {passive: false});
             this.mainCanvas.addEventListener('touchend', this._touchendHandler, {passive: false});
