@@ -1,38 +1,38 @@
-import Point from '../src/app/model/Point';
-import LineSegment from '../src/app/model/LineSegment';
+import AnchorPoint from '../src/app/model/AnchorPoint';
+import LineSegment, { LineSegmentType } from '../src/app/model/LineSegment';
 import { expect } from 'chai';
 import 'mocha';
 
 describe('LineSegment', () => {
 
     it('LineSegment pt should equal point', () => {
-        const point = new Point(10, 20);
-        const lineSegment = new LineSegment(point, null);
+        const point = new AnchorPoint(10, 20);
+        const lineSegment = new LineSegment(point, null, LineSegmentType.CORNER, null, 0);
         expect(lineSegment.pt).to.equal(point);
     });
 
     it('LineSegment contol points should be undefined', () => {
-        const point = new Point(10, 20);
-        const lineSegment = new LineSegment(point, null);
-        expect(lineSegment.ctrlPt1).to.be.undefined;
-        expect(lineSegment.ctrlPt2).to.be.undefined;
+        const point = new AnchorPoint(10, 20);
+        const lineSegment = new LineSegment(point, null, LineSegmentType.CORNER, null, 0);
+        expect(lineSegment.ctrlHandle1).to.be.undefined;
+        expect(lineSegment.ctrlHandle1).to.be.undefined;
     });
 
     it('LineSegment should have prev LineSegment', () => {
-        const point = new Point(10, 20);
-        const lineSegment = new LineSegment(point, null);
-        const point2 = new Point(20, 40);
-        const lineSegment2 = new LineSegment(point2, lineSegment);
+        const point = new AnchorPoint(10, 20);
+        const lineSegment = new LineSegment(point, null, LineSegmentType.CORNER, null, 0);
+        const point2 = new AnchorPoint(20, 40);
+        const lineSegment2 = new LineSegment(point, lineSegment, LineSegmentType.CORNER, null, 0);
         expect(lineSegment2.prev).to.equal(lineSegment);
     });
 
     it('LineSegment should have 2 control points', () => {
-        const point = new Point(10, 20);
-        const lineSegment = new LineSegment(point, null);
-        const point2 = new Point(20, 40);
-        const lineSegment2 = new LineSegment(point2, lineSegment);
-        expect(lineSegment2.ctrlPt1).to.not.be.undefined;
-        expect(lineSegment2.ctrlPt2).to.not.be.undefined;
+        const point = new AnchorPoint(10, 20);
+        const lineSegment = new LineSegment(point, null, LineSegmentType.CORNER, null, 0);
+        const point2 = new AnchorPoint(20, 40);
+        const lineSegment2 = new LineSegment(point, lineSegment, LineSegmentType.CORNER, null, 0);
+        expect(lineSegment2.ctrlHandle1).to.not.be.undefined;
+        expect(lineSegment2.ctrlHandle2).to.not.be.undefined;
     });
 
 });
