@@ -28,9 +28,7 @@ export default class Toolbar extends React.Component<ToolbarProps, ToolbarState>
     }
 
     render() {
-
         let mode: string = Mode[this.props.mode];
-        console.log(`Toolbar: render: `, this.props.mode, mode, this.props.options);
         let toggles = [];
         if (this.props.options.createSmoothLineSegments) toggles.push(1);
         if (this.props.options.hideAnchorPoints) toggles.push(2);

@@ -1,9 +1,9 @@
 import { EventEmitter } from 'events';
 import BezierPath from './BezierPath';
 import Point, { PointShape } from './Point';
-import { LineSegmentType, LineSegmentOptions } from './LineSegment';
+import LineSegment, { LineSegmentType, LineSegmentOptions } from './LineSegment';
 import CanvasTransformer, { Coords } from './CanvasTransformer';
-import { Vector2, Matrix4 } from 'math.gl';
+import { Vector2 } from 'math.gl';
 
 export enum Mode {
     Panning = 1,
@@ -80,8 +80,8 @@ export default class BezierTool extends EventEmitter {
         options = options || {};
         let defaultOptions = {
             createSmoothLineSegments: false,
-            hideAnchorPoints: true,
-            hideControlPoints: true,
+            hideAnchorPoints: false,
+            hideControlPoints: false,
             simplifyPathTolerance: 60,
             minDrawPointSpacing: 10,
             anchorPointShape: PointShape.Square,
@@ -269,8 +269,17 @@ export default class BezierTool extends EventEmitter {
     // call setMode from outside BezierTool to suppress the modeChange event
     setMode(mode: Mode, note: string = ''): void {
         this.mode = mode;
-        console.log(`setMode: ${Mode[mode]}: ${note}`);
+        // console.log(`setMode: ${Mode[mode]}: ${note}`);
+        this.mainCanvas.removeEventListener("mousemove", this._mouseMoveHandler, false);
+        if (this.bezierPath) {
+            this.bezierPath.clearNearestPointOnSegment();
+        }
         this._setCursor(mode);
+        switch(mode) {
+            case Mode.Inserting:
+                this.mainCanvas.addEventListener("mousemove", this._mouseMoveHandler, false);
+                break;
+        }
     }
 
     // bootstrap + bootstrap-theme: this.mainCanvas.offsetLeft, this.mainCanvas.offsetTop = 45, 209
@@ -289,7 +298,7 @@ export default class BezierTool extends EventEmitter {
         // y = y - this.mainCanvas.offsetTop - 3;
         let txPoint = this._canvasTxr.transformedPoint(x, y);
         // console.log(`getMousePosition: (${x}, ${y}) -> (${txPoint.x}, ${txPoint.y})`);
-        return {pt: new Point(txPoint.x, txPoint.y), pt0: new Point(x, y)};
+        return {pt: new Point(txPoint.x, txPoint.y), pt0: new Point(x, y), e: {clientX: x, clientY: y}};
     }
 
     handleDownAdd(pos: Point) {
@@ -342,7 +351,7 @@ export default class BezierTool extends EventEmitter {
                 }
                 result = true;
             } else if (this.mode == Mode.Selecting) {
-                this.bezierPath.deselectPoints();
+                this.bezierPath.deselectSegments();
                 this._setMode(Mode.Panning, 'not selected');
                 this.mainCanvas.addEventListener("mousemove", this._mouseMoveHandler, false);
             }
@@ -361,9 +370,16 @@ export default class BezierTool extends EventEmitter {
         }
     }
 
-    handleDown(e: any) {
-        var pos = this.getMousePosition(e);
-        this._canvasTxr.handleMousedown(e);
+    handleDownInsert() {
+        if (this.bezierPath) {
+            this.bezierPath.insertPointOnSegment();
+        }
+        this._setMode(Mode.Selecting, 'handleDownInsert');
+    }
+
+    handleDown(event: any) {
+        var pos = this.getMousePosition(event);
+        this._canvasTxr.handleMousedown(pos.e);
         let doubleClickTime: number = new Date().getTime() - this._previousClickTime;
         if (doubleClickTime < 200) {
             this._doubleClick = true;
@@ -383,6 +399,9 @@ export default class BezierTool extends EventEmitter {
                 break;
             case Mode.Drawing:
                 this.handleDownDraw(pos.pt);
+                break;
+            case Mode.Inserting:
+                this.handleDownInsert();
                 break;
         }
         this.render();
@@ -413,8 +432,8 @@ export default class BezierTool extends EventEmitter {
 
     }
 
-    handleMouseMove(e: any) {
-        var pos = this.getMousePosition(e);
+    handleMouseMove(event: any) {
+        var pos = this.getMousePosition(event);
 
         if (this.mode == Mode.Dragging) {
             this.bezierPath.updateSelected(pos.pt);
@@ -424,7 +443,14 @@ export default class BezierTool extends EventEmitter {
                 this.bezierPath.addPoint(pos.pt, lineSegmentType, <LineSegmentOptions>this._options);
             }
         } else if (this.mode == Mode.Panning) {
-            this._canvasTxr.handleMousemove(e); //mousemove(pos);
+            var pos = this.getMousePosition(event);
+            this._canvasTxr.handleMousemove(pos.e); //mousemove(pos);
+        } else if (this.mode == Mode.Inserting) {
+            if (this.bezierPath) {
+                // console.log(`Inserting`, pos.pt.x, pos.pt.y);
+                // this.bezierPath.selectNearestSegment(pos.pt);
+                this.bezierPath.findNearestPointOnSegment(pos.pt);
+            }
         }
         this.render();
     }
@@ -455,7 +481,7 @@ export default class BezierTool extends EventEmitter {
     handleUp(e: any) {
         this.mainCanvas.removeEventListener("mousemove", this._mouseMoveHandler, false);
         this.mainCanvas.removeEventListener('touchmove', this._touchmoveHandler, false);
-        this._canvasTxr.handleMouseup(e);
+        this._canvasTxr.handleMouseup();
 
         if (this.mode == Mode.Dragging) {
             this.bezierPath.clearSelected();

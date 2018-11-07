@@ -29,9 +29,9 @@ export default class ControlHandle {
         this._options = options;
 
         // When Constructed
-        if (this._isFirst && this._owner.type == LineSegmentType.SMOOTH || BezierTool.META_KEY_DOWN) {
-            this.updateNeighbor();
-        }
+        // if ( (this._isFirst && this._owner.prev && this._owner.prev.type == LineSegmentType.SMOOTH) || BezierTool.META_KEY_DOWN) {
+        //     this.updateNeighbor();
+        // }
     }
 
     setAngle(deg: number) {
@@ -66,6 +66,12 @@ export default class ControlHandle {
         return this.origin().y + this.yDelta;
     }
 
+    setXY(x: number, y: number): void {
+        let xDelta: number = x - this.origin().x;
+        let yDelta: number = y - this.origin().y;
+        this.computeMagnitudeAngleFromOffset(xDelta, yDelta);
+    }
+
     get pt(): Point {
         let pt: Point = new Point(this.x, this.y);
         return pt;
@@ -93,12 +99,17 @@ export default class ControlHandle {
         }
     }
 
-    translate(xDelta, yDelta) {
+    translate(xDelta, yDelta, updateNeighborOK: boolean = true) {
         var newLoc = this.asControlPoint();
         newLoc.translate(xDelta, yDelta);
         var dist = this.origin().offsetFrom(newLoc);
         this.computeMagnitudeAngleFromOffset(dist.xDelta, dist.yDelta);
-        if ( (!this._isFirst && this._owner.type == LineSegmentType.SMOOTH) || (this._isFirst && this._owner.prev.type == LineSegmentType.SMOOTH) || BezierTool.META_KEY_DOWN ) {
+        if ( updateNeighborOK && (
+                (!this._isFirst && this._owner.type == LineSegmentType.SMOOTH) ||
+                (this._isFirst && this._owner.prev.type == LineSegmentType.SMOOTH) ||
+                BezierTool.META_KEY_DOWN
+            )
+        ) {
             this.updateNeighbor();
         }
     };
@@ -106,9 +117,9 @@ export default class ControlHandle {
     updateNeighbor() {
         var neighbor = null;
         if (this._isFirst && this._owner.prev)
-            neighbor = this._owner.prev.ctrlPt2;
+            neighbor = this._owner.prev.ctrlHandle2;
         else if (!this._isFirst && this._owner.next)
-            neighbor = this._owner.next.ctrlPt1;
+            neighbor = this._owner.next.ctrlHandle1;
         if (neighbor)
             neighbor.setAngle(this._angle + Math.PI);
     }

@@ -36,7 +36,7 @@ export default class Application extends React.Component<ApplicationProps, Appli
     }
 
     onModeChange() {
-        console.log(`Application: onModeChange:`);
+        // console.log(`Application: onModeChange:`);
         this.setState({
             toolbarMode: this.props.model.bezierTool.mode
         });

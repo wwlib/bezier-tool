@@ -14,6 +14,7 @@
   "author": "Andrew Rapo <andrew@wwlib.org>",
   "license": "MIT",
   "dependencies": {
+    "bezier-js": "^2.2.15",
     "copy-webpack-plugin": "^4.5.2",
     "express": "^4.16.3",
     "math.gl": "^2.2.0",

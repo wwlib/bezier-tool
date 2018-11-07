@@ -1,6 +1,12 @@
-import LineSegment, { LineSegmentType, LineSegmentOptions } from './LineSegment';
+import LineSegment, { LineSegmentType, LineSegmentOptions, InsertionPoint } from './LineSegment';
 import Point from './Point';
 import AnchorPoint from './AnchorPoint';
+import { Vector2 } from 'math.gl';
+
+export type InsertionObj = {
+    segment: LineSegment;
+    insertionPoint: InsertionPoint;
+}
 
 export default class BezierPath {
 
@@ -9,6 +15,8 @@ export default class BezierPath {
     public selectedSegment: LineSegment; // Reference to selected LineSegment
     public startTime: number;
     public length: number;
+
+    private _nearestInsertionObj: InsertionObj;
 
     constructor(startPoint: Point, lineSegmentType: LineSegmentType = LineSegmentType.SMOOTH, options: LineSegmentOptions, startTime?: number) {
         this.head = null;
@@ -27,7 +35,7 @@ export default class BezierPath {
           this.head = newSegment;
         } else {
           this.tail.next = newSegment;
-          this.tail = this.tail.next;
+          this.tail = newSegment;
         }
         this.length++;
         return newSegment;
@@ -40,6 +48,11 @@ export default class BezierPath {
 
         var current: LineSegment = this.head;
         while (current != null) {
+            if (this._nearestInsertionObj && this._nearestInsertionObj.segment == current) {
+                options.selectionPoint = this._nearestInsertionObj.insertionPoint.pt
+            } else {
+                options.selectionPoint = undefined;
+            }
           current.draw(ctx, options);
           current = current.next;
         }
@@ -53,7 +66,7 @@ export default class BezierPath {
         while (current != null) {
             if (current.findInLineSegment(pos, options)) {
                 this.selectedSegment = current;
-                this.selectedSegment.controlPointsActive = true;
+                this.selectedSegment.select();
                 result = true;
             }
             current = current.next;
@@ -61,10 +74,10 @@ export default class BezierPath {
         return result;
     }
 
-    deselectPoints(): void {
+    deselectSegments(): void {
         var current: LineSegment = this.head;
         while (current != null) {
-            current.controlPointsActive = false;
+            current.deselect();
             current = current.next;
         }
     }
@@ -91,15 +104,15 @@ export default class BezierPath {
         // Middle case
         if (leftNeighbor && rightNeighbor) {
             leftNeighbor.next = rightNeighbor;
-            rightNeighbor.ctrlPt1 = segmentToDelete.ctrlPt1;
+            rightNeighbor.ctrlHandle1 = segmentToDelete.ctrlHandle1;
             rightNeighbor.prev = leftNeighbor;
         }
         // HEAD CASE
         else if (!leftNeighbor) {
           this.head = rightNeighbor;
           if (this.head) {
-            rightNeighbor.ctrlPt1 = null;
-            rightNeighbor.ctrlPt2 = null;
+            rightNeighbor.ctrlHandle1 = null;
+            rightNeighbor.ctrlHandle2 = null;
             this.head.prev = null;
           }
           else
@@ -231,6 +244,88 @@ export default class BezierPath {
                 current = current.next;
             }
         }
+    }
+
+    // selectNearestSegment(pt: Point): void {
+    //     this.deselectSegments();
+    //     let nearestSegment: LineSegment = this.head;
+    //
+    //     let nearestDist: number = Number.MAX_VALUE;
+    //     var current: LineSegment = this.head;
+    //     while (current != null) {
+    //         let vA = new Vector2([pt.x ,pt.y]);
+    //         let vB = new Vector2([current.pt.x ,current.pt.y]);
+    //         let dist = vA.distanceTo(vB);
+    //         if (dist < nearestDist) {
+    //             nearestSegment = current;
+    //         }
+    //         nearestDist = Math.min(nearestDist, dist);
+    //         current = current.next;
+    //     }
+    //     nearestSegment.select();
+    // }
+
+    findNearestPointOnSegment(pt: Point): {segment: LineSegment, insertionPoint: InsertionPoint} {
+        let result: any = {segment: undefined, insertionPoint: undefined};
+        // for each segment, find nearest point to segment
+        // keep the point that is nearest the cursor
+        // return the segment and the pt (t)
+        let nearestDist: number = Number.MAX_VALUE;
+        var current: LineSegment = this.head;
+        while (current != null) {
+            // turn segment into bezier
+            // find closest pt & t on the bezier
+            let closestPt: InsertionPoint = current.findNearestPointOnSegment(pt);
+            if (closestPt) {
+                let vA = new Vector2([pt.x ,pt.y]);
+                let vB = new Vector2([closestPt.pt.x ,closestPt.pt.y]);
+                let dist = vA.distanceTo(vB);
+                if (dist < nearestDist) {
+                    result.segment = current;
+                    result.insertionPoint = closestPt;
+                }
+                nearestDist = Math.min(nearestDist, dist);
+            }
+            current = current.next;
+        }
+        if (nearestDist > 20) { //TODO: Magic number
+            this._nearestInsertionObj = undefined;
+        } else {
+            this._nearestInsertionObj = result;
+        }
+
+        return this._nearestInsertionObj;
+    }
+
+    insertPointOnSegment(): void {
+        if (this._nearestInsertionObj) {
+            //generate two new LineSegments based on t
+            //replace LineSegment with two new segments
+            // console.log(`BezierPath: insertPointOnSegment:`, this._nearestInsertionObj);
+            let segment: LineSegment = this._nearestInsertionObj.segment;
+            let t: number = this._nearestInsertionObj.insertionPoint.t;
+            if (segment) {
+                let newSegments = segment.split(t);
+                // console.log(`segment.split:`, newSegments);
+                newSegments.left.next = newSegments.right;
+                newSegments.right.prev = newSegments.left;
+                if (segment.prev) {
+                    segment.prev.next = newSegments.left;
+                    newSegments.left.prev = segment.prev;
+
+                }
+                if (segment.next) {
+                    segment.next.prev = newSegments.right;
+                    newSegments.right.next = segment.next;
+                }
+                segment.dispose();
+            }
+            this.clearNearestPointOnSegment();
+        }
+    }
+
+    clearNearestPointOnSegment(): void {
+        this._nearestInsertionObj = undefined;
     }
 
     getTriangleArea(a: LineSegment, b: LineSegment, c: LineSegment) {

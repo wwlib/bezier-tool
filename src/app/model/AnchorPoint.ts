@@ -1,5 +1,5 @@
 import Point, { PointShape } from './Point';
-import { Matrix4 } from 'math.gl';
+import CanvasTransformer from './CanvasTransformer';
 
 export default class AnchorPoint extends Point {
 
@@ -7,17 +7,17 @@ export default class AnchorPoint extends Point {
         super(newX, newY, radius);
     }
 
-    draw(ctx: CanvasRenderingContext2D, shape: PointShape, strokeStyle: string = 'magenta', tx: Matrix4): void {
+    draw(ctx: CanvasRenderingContext2D, shape: PointShape, strokeStyle: string = 'magenta', txr: CanvasTransformer): void {
         ctx.fillStyle = 'white';
         ctx.strokeStyle = strokeStyle;
         if (shape == PointShape.Circle) {
             ctx.beginPath();
-            ctx.arc(this.tx(tx).x, this.tx(tx).y, this.RADIUS, 0, 2*Math.PI);
+            ctx.arc(this.tx(txr).x, this.tx(txr).y, this.RADIUS, 0, 2*Math.PI);
             ctx.stroke();
             ctx.fill();
         } else {
-            ctx.fillRect(this.tx(tx).x - this.RADIUS, this.tx(tx).y - this.RADIUS, this.RADIUS * 2, this.RADIUS * 2);
-            ctx.strokeRect(this.tx(tx).x - this.RADIUS, this.tx(tx).y - this.RADIUS, this.RADIUS * 2, this.RADIUS * 2);
+            ctx.fillRect(this.tx(txr).x - this.RADIUS, this.tx(txr).y - this.RADIUS, this.RADIUS * 2, this.RADIUS * 2);
+            ctx.strokeRect(this.tx(txr).x - this.RADIUS, this.tx(txr).y - this.RADIUS, this.RADIUS * 2, this.RADIUS * 2);
         }
     };
 }
